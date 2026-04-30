@@ -7,7 +7,7 @@ const url = require("url");
 const FRESHSERVICE_DOMAIN = "searcheducationtrust.freshservice.com";
 const API_KEY = "8qXHhTA54F6QsTyvx0a";
 const PORT = 3000;
-const WORKSPACE_IDS = [2, 3, 4]; // IT, HHS Facilities, TGS Facilities
+const WORKSPACE_IDS = [2, 3, 4]; // IT=2, HHS=3, TGS=4
 
 const AUTH = "Basic " + Buffer.from(API_KEY + ":X").toString("base64");
 
@@ -32,7 +32,6 @@ function fsRequest(apiPath) {
   });
 }
 
-// Fetch all tickets for a specific workspace
 async function getTicketsForWorkspace(workspaceId) {
   let all = [];
   for (let page = 1; page <= 5; page++) {
@@ -40,7 +39,6 @@ async function getTicketsForWorkspace(workspaceId) {
     const body = result.body;
     const batch = body.tickets || (Array.isArray(body) ? body : []);
     if (!batch.length) break;
-    // Tag each ticket with workspace_id in case API doesn't return it
     batch.forEach(t => { if (!t.workspace_id) t.workspace_id = workspaceId; });
     all = all.concat(batch);
     if (batch.length < 100) break;
@@ -48,7 +46,6 @@ async function getTicketsForWorkspace(workspaceId) {
   return all;
 }
 
-// Fetch agents for a specific workspace
 async function getAgentsForWorkspace(workspaceId) {
   const result = await fsRequest(`/agents?per_page=100&active=true&workspace_id=${workspaceId}`);
   const body = result.body;
@@ -73,7 +70,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Main data endpoint — fetches tickets from all workspaces in parallel
+  // All tickets across all workspaces
   if (parsed.pathname === "/api/alltickets") {
     try {
       const results = await Promise.all(WORKSPACE_IDS.map(id => getTicketsForWorkspace(id)));
@@ -87,7 +84,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Agents endpoint — fetches active agents from all workspaces, deduped by id
+  // All active agents deduped
   if (parsed.pathname === "/api/allagents") {
     try {
       const results = await Promise.all(WORKSPACE_IDS.map(id => getAgentsForWorkspace(id)));
@@ -106,12 +103,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Debug endpoints
+  // Debug: workspace ticket counts
   if (parsed.pathname === "/debug/sample") {
     try {
-      const it   = await getTicketsForWorkspace(2);
-      const hhs  = await getTicketsForWorkspace(3);
-      const tgs  = await getTicketsForWorkspace(4);
+      const [it, hhs, tgs] = await Promise.all([
+        getTicketsForWorkspace(2),
+        getTicketsForWorkspace(3),
+        getTicketsForWorkspace(4),
+      ]);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         IT_count: it.length,   IT_sample_workspace_id: it[0]?.workspace_id,
@@ -125,7 +124,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Fallback proxy for any other /api/ calls
+  // Debug: show all fields on a single IT ticket so we can see time fields
+  if (parsed.pathname === "/debug/ticketfields") {
+    try {
+      const result = await fsRequest("/tickets?per_page=3&workspace_id=2&order_by=updated_at&order_type=desc");
+      const body = result.body;
+      const tickets = body.tickets || (Array.isArray(body) ? body : []);
+      // Return just the first ticket with all its fields
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(tickets[0] || {}, null, 2));
+    } catch (err) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Fallback proxy
   if (parsed.pathname.startsWith("/api/")) {
     const apiPath = parsed.pathname.replace("/api", "") + (parsed.search || "");
     try {
@@ -145,5 +160,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n✅  Freshservice Dashboard: http://localhost:${PORT}`);
-  console.log(`   Debug sample : http://localhost:${PORT}/debug/sample\n`);
+  console.log(`   Ticket fields: http://localhost:${PORT}/debug/ticketfields\n`);
 });
