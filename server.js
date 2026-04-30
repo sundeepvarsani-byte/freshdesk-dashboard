@@ -140,6 +140,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Debug: show all unique status codes in IT tickets
+  if (parsed.pathname === "/debug/statuses") {
+    try {
+      const tickets = await getTicketsForWorkspace(2);
+      const statusCounts = {};
+      tickets.forEach(t => {
+        const key = t.status;
+        statusCounts[key] = (statusCounts[key] || 0) + 1;
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        total_it_tickets: tickets.length,
+        status_breakdown: statusCounts,
+        note: "Standard: 2=Open, 3=Pending, 4=Resolved, 5=Closed. Others are custom."
+      }, null, 2));
+    } catch (err) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   // Fallback proxy
   if (parsed.pathname.startsWith("/api/")) {
     const apiPath = parsed.pathname.replace("/api", "") + (parsed.search || "");
