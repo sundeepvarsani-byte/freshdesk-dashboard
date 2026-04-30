@@ -551,11 +551,62 @@ function renderAgentsView() {
 }
 
 // ── IT RESOLUTION TIME ────────────────────────────────────────────────────────
+
+// Business hours: Mon-Fri 08:00-16:00 local time
+const BIZ_START = 8;   // 08:00
+const BIZ_END   = 16;  // 16:00
+const BIZ_HOURS_PER_DAY = BIZ_END - BIZ_START; // 8
+
+function businessHoursBetween(startDate, endDate) {
+  if (endDate <= startDate) return 0;
+  let total = 0;
+  const cursor = new Date(startDate);
+
+  // Snap cursor forward to next business moment if outside hours
+  function snapForward(d) {
+    const day = d.getDay(); // 0=Sun, 6=Sat
+    // If weekend, move to Monday 08:00
+    if (day === 0) { d.setDate(d.getDate() + 1); d.setHours(BIZ_START, 0, 0, 0); }
+    if (day === 6) { d.setDate(d.getDate() + 2); d.setHours(BIZ_START, 0, 0, 0); }
+    // If before 08:00, move to 08:00
+    if (d.getHours() < BIZ_START) { d.setHours(BIZ_START, 0, 0, 0); }
+    // If at or after 16:00, move to next weekday 08:00
+    if (d.getHours() >= BIZ_END) {
+      d.setDate(d.getDate() + 1);
+      d.setHours(BIZ_START, 0, 0, 0);
+      snapForward(d); // recurse in case next day is weekend
+    }
+  }
+
+  snapForward(cursor);
+  if (cursor >= endDate) return 0;
+
+  while (cursor < endDate) {
+    const day = cursor.getDay();
+    if (day !== 0 && day !== 6) {
+      // End of business today
+      const endOfDay = new Date(cursor);
+      endOfDay.setHours(BIZ_END, 0, 0, 0);
+      const chunkEnd = endOfDay < endDate ? endOfDay : endDate;
+      const chunkStart = cursor < new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), BIZ_START)
+        ? new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), BIZ_START)
+        : cursor;
+      if (chunkEnd > chunkStart) {
+        total += (chunkEnd - chunkStart) / 3600000;
+      }
+    }
+    // Move to next day 08:00
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(BIZ_START, 0, 0, 0);
+  }
+  return total;
+}
+
 function formatDuration(hours) {
   if (hours < 1) return `${Math.round(hours * 60)}m`;
-  if (hours < 24) return `${Math.round(hours)}h`;
-  const d = Math.floor(hours / 24);
-  const h = Math.round(hours % 24);
+  if (hours < BIZ_HOURS_PER_DAY) return `${Math.round(hours)}h`;
+  const d = Math.floor(hours / BIZ_HOURS_PER_DAY);
+  const h = Math.round(hours % BIZ_HOURS_PER_DAY);
   return h > 0 ? `${d}d ${h}h` : `${d}d`;
 }
 
@@ -595,7 +646,7 @@ function renderITResolution() {
     const durations = mine.map(t => {
       const created = new Date(t.created_at);
       const closed  = new Date(t.updated_at);
-      return (closed - created) / 3600000; // hours
+      return businessHoursBetween(created, closed); // business hours only
     }).filter(h => h > 0);
 
     if (!durations.length) return null;
@@ -622,7 +673,7 @@ function renderITResolution() {
 
   // Overall summary
   const allDurations = itTickets
-    .map(t => (new Date(t.updated_at) - new Date(t.created_at)) / 3600000)
+    .map(t => businessHoursBetween(new Date(t.created_at), new Date(t.updated_at)))
     .filter(h => h > 0);
   const overallAvg = allDurations.reduce((a,b) => a+b, 0) / allDurations.length;
   const overallSLA = Math.round(allDurations.filter(h => h <= 24).length / allDurations.length * 100);
@@ -671,7 +722,7 @@ function renderITResolution() {
         </div>`).join('')}
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:8px">
-      * Resolution time calculated from ticket creation to last update on resolved/closed tickets.
+      * Resolution time calculated in business hours (Mon–Fri, 08:00–16:00) from ticket creation to last update on resolved/closed tickets.
     </div>`;
 }
 
