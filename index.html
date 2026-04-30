@@ -181,7 +181,7 @@
       </div>
       <div>
         <div class="brand-name">SET Helpdesk</div>
-        <div class="brand-sub">Freshdesk · Live</div>
+        <div class="brand-sub">Freshservice · Live</div>
       </div>
     </div>
 
@@ -417,7 +417,8 @@ function renderAgents(agents, tickets) {
   const agentStats = agents.slice(0, 6).map((a, i) => {
     const myTickets = filtered.filter(t => t.responder_id === a.id);
     const resolved = myTickets.filter(t => t.status === 4 || t.status === 5).length;
-    return { name: a.contact.name, resolved, color: colors[i % colors.length] };
+    const name = a.contact?.name || a.name || 'Agent';
+    return { name, resolved, color: colors[i % colors.length] };
   }).sort((a,b) => b.resolved - a.resolved);
 
   const maxRes = Math.max(...agentStats.map(a => a.resolved), 1);
@@ -444,19 +445,20 @@ async function loadData() {
   try {
     document.getElementById('errorMsg').style.display = 'none';
 
-    // Fetch tickets (paginated — up to 3 pages = 300 tickets)
+    // Freshservice wraps responses: { tickets: [...] } and { agents: [...] }
     let tickets = [];
     for (let page = 1; page <= 3; page++) {
-      const batch = await API(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc`);
-      if (!Array.isArray(batch) || batch.length === 0) break;
+      const resp = await API(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc`);
+      const batch = resp.tickets || (Array.isArray(resp) ? resp : []);
+      if (batch.length === 0) break;
       tickets = tickets.concat(batch);
       if (batch.length < 100) break;
     }
     allTickets = tickets;
 
     // Fetch agents
-    const agents = await API('/agents?per_page=50');
-    allAgents = Array.isArray(agents) ? agents : [];
+    const agentsResp = await API('/agents?per_page=50');
+    allAgents = agentsResp.agents || (Array.isArray(agentsResp) ? agentsResp : []);
 
     // Update timestamp
     document.getElementById('lastUpdated').textContent =
