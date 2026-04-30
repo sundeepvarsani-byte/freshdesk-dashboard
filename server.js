@@ -34,7 +34,7 @@ function fsRequest(apiPath) {
 
 async function getTicketsForWorkspace(workspaceId) {
   let all = [];
-  for (let page = 1; page <= 10; page++) {
+  for (let page = 1; page <= 15; page++) {
     const result = await fsRequest(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc&workspace_id=${workspaceId}`);
     const body = result.body;
     const batch = body.tickets || (Array.isArray(body) ? body : []);

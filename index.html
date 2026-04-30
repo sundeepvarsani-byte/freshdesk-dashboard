@@ -99,6 +99,8 @@
   .b-high{background:rgba(245,166,35,0.15);color:#f5a623;}
   .b-medium{background:rgba(79,142,247,0.15);color:#4f8ef7;}
   .b-low{background:rgba(122,130,160,0.15);color:#7a82a0;}
+  .b-onhold{background:rgba(155,114,245,0.15);color:#9b72f5;}
+  .b-3rdparty{background:rgba(251,146,60,0.15);color:#fb923c;}
 
   .avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
   .agent-cell{display:flex;align-items:center;gap:8px;}
@@ -243,6 +245,8 @@
             <option value="all">All statuses</option>
             <option value="2">Open</option>
             <option value="3">Pending</option>
+            <option value="6">On Hold</option>
+            <option value="7">3rd Party</option>
             <option value="4">Resolved</option>
             <option value="5">Closed</option>
           </select>
@@ -289,9 +293,14 @@ let currentWS = 'all';
 let tChart, pChart;
 
 const COLORS = ['#4f8ef7','#1CB47A','#f5a623','#9b72f5','#e55353','#64d2b0','#fb923c','#a78bfa'];
-const STATUS_MAP   = {2:'Open',3:'Pending',4:'Resolved',5:'Closed'};
-const STATUS_COLOR = {2:'#4f8ef7',3:'#f5a623',4:'#1CB47A',5:'#7a82a0'};
-const STATUS_CLS   = {2:'b-open',3:'b-pending',4:'b-resolved',5:'b-closed'};
+// Status IDs as returned by Freshservice API for this account:
+// 2=Open, 3=Pending, 4=Resolved, 5=Closed, 6=On Hold, 7=3rd Party
+const STATUS_MAP   = {2:'Open',3:'Pending',4:'Resolved',5:'Closed',6:'On Hold',7:'3rd Party'};
+const STATUS_COLOR = {2:'#4f8ef7',3:'#f5a623',4:'#1CB47A',5:'#7a82a0',6:'#9b72f5',7:'#fb923c'};
+const STATUS_CLS   = {2:'b-open',3:'b-pending',4:'b-resolved',5:'b-closed',6:'b-onhold',7:'b-3rdparty'};
+// Active = Open, Pending, On Hold, 3rd Party (anything not yet resolved/closed)
+const ACTIVE_STATUSES = [2, 3, 6, 7];
+const CLOSED_STATUSES = [4, 5];
 const PRI_MAP      = {1:'Low',2:'Medium',3:'High',4:'Urgent'};
 const PRI_CLS      = {1:'b-low',2:'b-medium',3:'b-high',4:'b-urgent'};
 
@@ -350,18 +359,21 @@ function buildTabs() {
 // ── RENDER METRICS ─────────────────────────────────────────────────────────────
 function renderMetrics() {
   const t = getFiltered();
+  const active=t.filter(x=>ACTIVE_STATUSES.includes(x.status)).length;
   const open=t.filter(x=>x.status===2).length;
-  const resolved=t.filter(x=>x.status===4||x.status===5).length;
-  const urgent=t.filter(x=>x.priority===4).length;
+  const onHold=t.filter(x=>x.status===6).length;
+  const thirdParty=t.filter(x=>x.status===7).length;
+  const resolved=t.filter(x=>CLOSED_STATUSES.includes(x.status)).length;
+  const urgent=t.filter(x=>x.priority===4&&ACTIVE_STATUSES.includes(x.status)).length;
   const total=t.length;
   const resRate=total?Math.round(resolved/total*100):0;
   const accent = currentWS==='all'?'#1CB47A':(WS[currentWS]?.color||'#1CB47A');
 
   document.getElementById('metricsGrid').innerHTML=[
-    {label:'Total tickets',value:total,delta:currentFilter==='7d'?'Past 7 days':currentFilter==='30d'?'Past 30 days':'All time',cls:'delta-neutral',accent:'#7a82a0'},
-    {label:'Open',value:open,delta:`${t.filter(x=>x.status===3).length} pending`,cls:'delta-neutral',accent:'#4f8ef7'},
+    {label:'Active tickets',value:active,delta:`${open} open · ${onHold} on hold · ${thirdParty} 3rd party`,cls:'delta-neutral',accent:'#4f8ef7'},
+    {label:'Open / Pending',value:open,delta:`${onHold} on hold · ${thirdParty} with 3rd party`,cls:'delta-neutral',accent:'#4f8ef7'},
     {label:'Resolved / Closed',value:resolved,delta:`${resRate}% resolution rate`,cls:resRate>70?'delta-up':'delta-neutral',accent:'#1CB47A'},
-    {label:'Urgent',value:urgent,delta:total?`${Math.round(urgent/total*100)}% of tickets`:'—',cls:urgent>5?'delta-down':'delta-up',accent:urgent>5?'#e55353':'#1CB47A'},
+    {label:'Urgent active',value:urgent,delta:active?`${Math.round(urgent/active*100)}% of active`:'—',cls:urgent>5?'delta-down':'delta-up',accent:urgent>5?'#e55353':'#1CB47A'},
   ].map(c=>`<div class="metric-card" style="--card-accent:${c.accent}">
     <div class="metric-label">${c.label}</div>
     <div class="metric-value">${c.value}</div>
@@ -414,8 +426,8 @@ function renderCharts() {
 // ── RENDER STATUS ──────────────────────────────────────────────────────────────
 function renderStatus() {
   const t=getFiltered();
-  const maxC=Math.max(...[2,3,4,5].map(s=>t.filter(x=>x.status===s).length),1);
-  document.getElementById('statusList').innerHTML=[2,3,4,5].map(s=>{
+  const maxC=Math.max(...[2,3,4,5,6,7].map(s=>t.filter(x=>x.status===s).length),1);
+  document.getElementById('statusList').innerHTML=[2,3,6,7,4,5].filter(s=>t.some(x=>x.status===s)||[2,4,5].includes(s)).map(s=>{
     const c=t.filter(x=>x.status===s).length;
     return `<div class="status-item">
       <div class="status-dot" style="background:${STATUS_COLOR[s]}"></div>
@@ -519,7 +531,7 @@ function renderITResolution() {
   // Only use IT tickets that are resolved or closed and have both timestamps
   const itTickets = filterByDate(allTickets).filter(t =>
     t.workspace_id === 2 &&
-    (t.status === 4 || t.status === 5) &&
+    CLOSED_STATUSES.includes(t.status) &&
     t.created_at && t.updated_at
   );
 
