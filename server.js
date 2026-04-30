@@ -85,6 +85,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+
+  // Debug: list all workspaces
+  if (parsed.pathname === "/debug/workspaces") {
+    const result = await fsRequest("/workspaces?per_page=50");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result.body, null, 2));
+    return;
+  }
+
+  // Debug: groups across all workspaces
+  if (parsed.pathname === "/debug/allgroups") {
+    const wsResult = await fsRequest("/workspaces?per_page=50");
+    const wsBody = wsResult.body;
+    const workspaces = wsBody.workspaces || (Array.isArray(wsBody) ? wsBody : []);
+    const allData = [];
+    for (const ws of workspaces) {
+      const grResult = await fsRequest(`/groups?per_page=100&workspace_id=${ws.id}`);
+      const grBody = grResult.body;
+      const groups = grBody.groups || (Array.isArray(grBody) ? grBody : []);
+      allData.push({ workspace_id: ws.id, workspace_name: ws.name, groups: groups.map(g => ({ id: g.id, name: g.name })) });
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(allData, null, 2));
+    return;
+  }
+
   if (parsed.pathname.startsWith("/api/")) {
     const apiPath = parsed.pathname.replace("/api", "") + (parsed.search || "");
     const finalPath = apiPath.startsWith("/agents") && !apiPath.includes("active=")
