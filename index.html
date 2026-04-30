@@ -518,20 +518,13 @@ async function loadData() {
   try {
     document.getElementById('errorMsg').style.display='none';
 
-    // Fetch tickets across ALL workspaces — Freshservice returns workspace_id on each ticket
-    let tickets=[];
-    for(let page=1;page<=5;page++){
-      const resp=await fetch(`/api/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc`).then(r=>r.json());
-      const batch=resp.tickets||(Array.isArray(resp)?resp:[]);
-      if(!batch.length)break;
-      tickets=tickets.concat(batch);
-      if(batch.length<100)break;
-    }
-    allTickets=tickets;
+    // Fetch all tickets across all workspaces via dedicated endpoint
+    const ticketResp = await fetch('/api/alltickets').then(r=>r.json());
+    allTickets = ticketResp.tickets || [];
 
-    // Active agents only
-    const agResp=await fetch('/api/agents?per_page=100&active=true').then(r=>r.json());
-    allAgents=agResp.agents||(Array.isArray(agResp)?agResp:[]);
+    // Fetch active agents across all workspaces, deduped
+    const agResp = await fetch('/api/allagents').then(r=>r.json());
+    allAgents = agResp.agents || [];
 
     const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('lastUpdated').textContent=`Last updated ${now} · ${allTickets.length} tickets · ${allAgents.length} active agents`;
