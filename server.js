@@ -34,7 +34,7 @@ function fsRequest(apiPath) {
 
 async function getTicketsForWorkspace(workspaceId) {
   let all = [];
-  for (let page = 1; page <= 5; page++) {
+  for (let page = 1; page <= 10; page++) {
     const result = await fsRequest(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc&workspace_id=${workspaceId}`);
     const body = result.body;
     const batch = body.tickets || (Array.isArray(body) ? body : []);
@@ -133,6 +133,22 @@ const server = http.createServer(async (req, res) => {
       // Return just the first ticket with all its fields
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(tickets[0] || {}, null, 2));
+    } catch (err) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Debug: fetch ticket_fields to get custom status names
+  if (parsed.pathname === "/debug/statusnames") {
+    try {
+      const result = await fsRequest("/ticket_fields?workspace_id=2");
+      const body = result.body;
+      const fields = body.ticket_fields || (Array.isArray(body) ? body : []);
+      const statusField = fields.find(f => f.name === "status" || f.field_type === "default_status");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(statusField || { all_fields: fields.map(f=>({name:f.name,field_type:f.field_type})) }, null, 2));
     } catch (err) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: err.message }));
