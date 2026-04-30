@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SET Helpdesk Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #171b26;
+    --surface2: #1e2334;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f2f8;
+    --muted: #7a82a0;
+    --accent: #1CB47A;
+    --accent2: #0e7a50;
+    --blue: #4f8ef7;
+    --amber: #f5a623;
+    --red: #e55353;
+    --purple: #9b72f5;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* LAYOUT */
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 0.5rem; }
+  .brand-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-icon svg { width: 18px; height: 18px; fill: white; }
+  .brand-name { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
+  .brand-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+  .nav-section { display: flex; flex-direction: column; gap: 2px; }
+  .nav-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 0.75rem; margin-bottom: 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px;
+    color: var(--muted); font-size: 13px; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(28,180,122,0.15); color: var(--accent); }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .sidebar-footer { margin-top: auto; padding: 0 0.5rem; }
+  .connected-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--accent);
+    background: rgba(28,180,122,0.1);
+    padding: 6px 10px; border-radius: 6px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* MAIN */
+  .main { padding: 2rem; overflow-x: hidden; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+  .page-title { font-size: 20px; font-weight: 600; letter-spacing: -0.03em; }
+  .page-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .filter-group { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+  .filter-btn {
+    font-family: var(--font); font-size: 12px; padding: 5px 14px;
+    border: none; border-radius: 6px; background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .filter-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
+
+  /* METRIC CARDS */
+  .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .metric-card:hover { border-color: var(--border2); }
+  .metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--card-accent, var(--accent));
+    border-radius: 12px 12px 0 0;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .metric-value { font-size: 28px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px; }
+  .metric-delta { font-size: 11px; display: flex; align-items: center; gap: 4px; }
+  .delta-up { color: var(--accent); }
+  .delta-down { color: var(--red); }
+  .delta-neutral { color: var(--muted); }
+
+  /* CHART ROW */
+  .charts-row { display: grid; grid-template-columns: 1.7fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .card-title { font-size: 13px; font-weight: 500; }
+  .card-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; background: rgba(28,180,122,0.12); color: var(--accent); }
+
+  /* BOTTOM ROW */
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* STATUS LIST */
+  .status-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .status-item:last-child { border-bottom: none; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .status-name { font-size: 13px; flex: 1; }
+  .status-bar-track { flex: 2; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .status-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .status-count { font-size: 13px; font-weight: 500; font-family: var(--mono); min-width: 32px; text-align: right; }
+
+  /* AGENT TABLE */
+  .agent-table { width: 100%; border-collapse: collapse; }
+  .agent-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 0 10px; text-align: left; font-weight: 400; border-bottom: 1px solid var(--border); }
+  .agent-table th:not(:first-child) { text-align: right; }
+  .agent-table td { padding: 9px 0; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13px; }
+  .agent-table td:not(:first-child) { text-align: right; }
+  .agent-table tr:last-child td { border-bottom: none; }
+  .agent-name { display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+  .csat-pill { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; }
+  .csat-bar { width: 40px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .csat-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .mono { font-family: var(--mono); }
+
+  /* LOADING */
+  .loading { display: flex; align-items: center; justify-content: center; height: 120px; color: var(--muted); font-size: 13px; gap: 8px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ERROR */
+  .error-msg { background: rgba(229,83,83,0.1); border: 1px solid rgba(229,83,83,0.3); border-radius: 8px; padding: 12px 16px; color: #f98080; font-size: 13px; margin-bottom: 1.5rem; display: none; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 10.5c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08A7.18 7.18 0 0110 15.5z"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">SET Helpdesk</div>
+        <div class="brand-sub">Freshdesk · Live</div>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Overview</div>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/></svg>
+        All Tickets
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+        Agents
+      </a>
+    </nav>
+
+    <nav class="nav-section">
+      <div class="nav-label">Reports</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+        Analytics
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+        SLA Reports
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="connected-badge">
+        <div class="dot"></div>
+        Connected to Freshdesk
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Support Overview</div>
+        <div class="page-sub" id="lastUpdated">Loading…</div>
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="setFilter(this,'7d')">7 days</button>
+        <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
+        <button class="filter-btn" onclick="setFilter(this,'90d')">All time</button>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="metrics" id="metricsGrid">
+      <div class="loading"><div class="spinner"></div> Loading metrics…</div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Ticket volume — new vs resolved</div>
+          <div class="card-badge" id="trendBadge">Live</div>
+        </div>
+        <div style="position:relative;height:200px">
+          <canvas id="trendChart" role="img" aria-label="Line chart showing new vs resolved tickets over time"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">By type</div>
+        </div>
+        <div style="position:relative;height:200px">
+          <canvas id="typeChart" role="img" aria-label="Doughnut chart of ticket types"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Status breakdown</div></div>
+        <div id="statusList"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Agent performance</div></div>
+        <div id="agentSection"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = (path) => fetch('/api' + path).then(r => r.json());
+
+let tChart, typeChart;
+let allTickets = [], allAgents = [];
+let currentFilter = '7d';
+
+// ── STATUS LABELS ─────────────────────────────────────────────────────────────
+// Freshdesk: 2=Open, 3=Pending, 4=Resolved, 5=Closed
+const STATUS_MAP = { 2: 'Open', 3: 'Pending', 4: 'Resolved', 5: 'Closed' };
+const STATUS_COLORS = { 2: '#4f8ef7', 3: '#f5a623', 4: '#1CB47A', 5: '#7a82a0' };
+const PRIORITY_MAP = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'Urgent' };
+
+function filterTickets(tickets, range) {
+  const now = new Date();
+  const days = range === '7d' ? 7 : range === '30d' ? 30 : 9999;
+  const cutoff = new Date(now - days * 86400000);
+  return tickets.filter(t => new Date(t.created_at) >= cutoff);
+}
+
+function renderMetrics(tickets) {
+  const filtered = filterTickets(tickets, currentFilter);
+  const open = filtered.filter(t => t.status === 2).length;
+  const pending = filtered.filter(t => t.status === 3).length;
+  const resolved = filtered.filter(t => t.status === 4 || t.status === 5).length;
+  const total = filtered.length;
+
+  // Avg first response (approx from fr_due_by vs created_at)
+  const urgent = filtered.filter(t => t.priority === 4).length;
+
+  const cards = [
+    { label: 'Total tickets', value: total, delta: `${currentFilter === '7d' ? 'Past 7 days' : currentFilter === '30d' ? 'Past 30 days' : 'All time'}`, cls: 'delta-neutral', accent: '#4f8ef7' },
+    { label: 'Open', value: open, delta: `${pending} pending`, cls: 'delta-neutral', accent: '#4f8ef7' },
+    { label: 'Resolved / Closed', value: resolved, delta: total ? Math.round(resolved/total*100)+'% resolution rate' : '—', cls: 'delta-up', accent: '#1CB47A' },
+    { label: 'Urgent priority', value: urgent, delta: total ? Math.round(urgent/total*100)+'% of tickets' : '—', cls: urgent > 5 ? 'delta-down' : 'delta-up', accent: urgent > 5 ? '#e55353' : '#1CB47A' },
+  ];
+
+  document.getElementById('metricsGrid').innerHTML = cards.map(c => `
+    <div class="metric-card" style="--card-accent:${c.accent}">
+      <div class="metric-label">${c.label}</div>
+      <div class="metric-value">${c.value}</div>
+      <div class="metric-delta ${c.cls}">${c.delta}</div>
+    </div>`).join('');
+}
+
+function renderCharts(tickets) {
+  const filtered = filterTickets(tickets, currentFilter);
+
+  // Trend — group by day/week
+  const buckets = {};
+  const resolvedBuckets = {};
+  const days = currentFilter === '7d' ? 7 : currentFilter === '30d' ? 30 : 90;
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = currentFilter === '7d'
+      ? d.toLocaleDateString('en-GB', { weekday: 'short' })
+      : currentFilter === '30d'
+        ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    buckets[key] = (buckets[key] || 0);
+    resolvedBuckets[key] = (resolvedBuckets[key] || 0);
+  }
+
+  filtered.forEach(t => {
+    const d = new Date(t.created_at);
+    const key = currentFilter === '7d'
+      ? d.toLocaleDateString('en-GB', { weekday: 'short' })
+      : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    if (key in buckets) buckets[key]++;
+    if ((t.status === 4 || t.status === 5) && key in resolvedBuckets) resolvedBuckets[key]++;
+  });
+
+  // Show only last 10 labels for readability
+  const labels = Object.keys(buckets).slice(-10);
+  const newData = labels.map(k => buckets[k]);
+  const resData = labels.map(k => resolvedBuckets[k]);
+
+  if (tChart) tChart.destroy();
+  tChart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'New', data: newData, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.1)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2 },
+        { label: 'Resolved', data: resData, borderColor: '#1CB47A', backgroundColor: 'rgba(28,180,122,0.1)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2, borderDash: [4,3] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7a82a0', boxWidth: 10, font: { size: 11, family: 'DM Sans' }, padding: 16 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#7a82a0', font: { size: 10 }, maxTicksLimit: 8 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a82a0', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Type / priority doughnut
+  const pCounts = [1,2,3,4].map(p => filtered.filter(t => t.priority === p).length);
+  if (typeChart) typeChart.destroy();
+  typeChart = new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Low','Medium','High','Urgent'],
+      datasets: [{ data: pCounts, backgroundColor: ['#7a82a0','#4f8ef7','#f5a623','#e55353'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: { legend: { position: 'right', labels: { color: '#7a82a0', boxWidth: 10, font: { size: 11, family: 'DM Sans' }, padding: 10 } } }
+    }
+  });
+}
+
+function renderStatus(tickets) {
+  const filtered = filterTickets(tickets, currentFilter);
+  const total = filtered.length || 1;
+  const statuses = [2,3,4,5].map(s => ({
+    label: STATUS_MAP[s],
+    count: filtered.filter(t => t.status === s).length,
+    color: STATUS_COLORS[s],
+  }));
+  const maxCount = Math.max(...statuses.map(s => s.count), 1);
+
+  document.getElementById('statusList').innerHTML = statuses.map(s => `
+    <div class="status-item">
+      <div class="status-dot" style="background:${s.color}"></div>
+      <div class="status-name">${s.label}</div>
+      <div class="status-bar-track"><div class="status-bar-fill" style="width:${Math.round(s.count/maxCount*100)}%;background:${s.color}"></div></div>
+      <div class="status-count mono">${s.count}</div>
+    </div>`).join('');
+}
+
+function renderAgents(agents, tickets) {
+  if (!agents.length) {
+    document.getElementById('agentSection').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No agent data available.</div>';
+    return;
+  }
+  const filtered = filterTickets(tickets, currentFilter);
+  const colors = ['#4f8ef7','#1CB47A','#f5a623','#9b72f5','#e55353','#64d2b0'];
+
+  const agentStats = agents.slice(0, 6).map((a, i) => {
+    const myTickets = filtered.filter(t => t.responder_id === a.id);
+    const resolved = myTickets.filter(t => t.status === 4 || t.status === 5).length;
+    return { name: a.contact.name, resolved, color: colors[i % colors.length] };
+  }).sort((a,b) => b.resolved - a.resolved);
+
+  const maxRes = Math.max(...agentStats.map(a => a.resolved), 1);
+
+  document.getElementById('agentSection').innerHTML = `
+    <table class="agent-table">
+      <thead><tr><th>Agent</th><th>Resolved</th><th style="text-align:left;padding-left:8px">Rate</th></tr></thead>
+      <tbody>${agentStats.map(a => `
+        <tr>
+          <td><div class="agent-name">
+            <div class="avatar" style="background:${a.color}22;color:${a.color}">${a.name.split(' ').map(x=>x[0]).join('').slice(0,2)}</div>
+            <span>${a.name.split(' ')[0]}</span>
+          </div></td>
+          <td class="mono" style="text-align:right">${a.resolved}</td>
+          <td style="text-align:left;padding-left:8px">
+            <div class="csat-bar"><div class="csat-fill" style="width:${Math.round(a.resolved/maxRes*100)}%"></div></div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function loadData() {
+  try {
+    document.getElementById('errorMsg').style.display = 'none';
+
+    // Fetch tickets (paginated — up to 3 pages = 300 tickets)
+    let tickets = [];
+    for (let page = 1; page <= 3; page++) {
+      const batch = await API(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc`);
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      tickets = tickets.concat(batch);
+      if (batch.length < 100) break;
+    }
+    allTickets = tickets;
+
+    // Fetch agents
+    const agents = await API('/agents?per_page=50');
+    allAgents = Array.isArray(agents) ? agents : [];
+
+    // Update timestamp
+    document.getElementById('lastUpdated').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    renderAll();
+  } catch (err) {
+    const el = document.getElementById('errorMsg');
+    el.style.display = 'block';
+    el.textContent = 'Could not connect to Freshdesk API. Make sure the proxy server is running. Error: ' + err.message;
+  }
+}
+
+function renderAll() {
+  renderMetrics(allTickets);
+  renderCharts(allTickets);
+  renderStatus(allTickets);
+  renderAgents(allAgents, allTickets);
+}
+
+function setFilter(btn, key) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = key;
+  renderAll();
+}
+
+// Initial load + auto-refresh every 2 minutes
+loadData();
+setInterval(loadData, 120000);
+</script>
+</body>
+</html>
