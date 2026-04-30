@@ -4,15 +4,13 @@ const fs = require("fs");
 const path = require("path");
 const url = require("url");
 
-// ── CONFIG ────────────────────────────────────────────────────────────────────
 const FRESHSERVICE_DOMAIN = "searcheducationtrust.freshservice.com";
 const API_KEY = "8qXHhTA54F6QsTyvx0a";
 const PORT = 3000;
-// ─────────────────────────────────────────────────────────────────────────────
 
 const AUTH = "Basic " + Buffer.from(API_KEY + ":X").toString("base64");
 
-function freshserviceRequest(apiPath) {
+function fsRequest(apiPath) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: FRESHSERVICE_DOMAIN,
@@ -33,6 +31,19 @@ function freshserviceRequest(apiPath) {
   });
 }
 
+async function getAllGroups() {
+  let all = [];
+  for (let page = 1; page <= 5; page++) {
+    const result = await fsRequest(`/groups?per_page=100&page=${page}`);
+    const body = result.body;
+    const batch = body.groups || (Array.isArray(body) ? body : []);
+    if (!batch.length) break;
+    all = all.concat(batch);
+    if (batch.length < 100) break;
+  }
+  return all;
+}
+
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url, true);
 
@@ -51,21 +62,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Debug endpoints to inspect raw API structure
-  if (parsed.pathname === "/debug/agents") {
-    const result = await freshserviceRequest("/agents?per_page=3");
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(result.body, null, 2));
-    return;
-  }
-  if (parsed.pathname === "/debug/tickets") {
-    const result = await freshserviceRequest("/tickets?per_page=3");
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(result.body, null, 2));
-    return;
-  }
+  // Debug: clean list of ALL groups — id and name only
   if (parsed.pathname === "/debug/groups") {
-    const result = await freshserviceRequest("/groups?per_page=20");
+    const groups = await getAllGroups();
+    const summary = groups.map(g => ({ id: g.id, name: g.name }));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ total: summary.length, groups: summary }, null, 2));
+    return;
+  }
+
+  if (parsed.pathname === "/debug/agents") {
+    const result = await fsRequest("/agents?per_page=3&active=true");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result.body, null, 2));
+    return;
+  }
+
+  if (parsed.pathname === "/debug/tickets") {
+    const result = await fsRequest("/tickets?per_page=3");
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(result.body, null, 2));
     return;
@@ -73,8 +87,11 @@ const server = http.createServer(async (req, res) => {
 
   if (parsed.pathname.startsWith("/api/")) {
     const apiPath = parsed.pathname.replace("/api", "") + (parsed.search || "");
+    const finalPath = apiPath.startsWith("/agents") && !apiPath.includes("active=")
+      ? apiPath + (apiPath.includes("?") ? "&active=true" : "?active=true")
+      : apiPath;
     try {
-      const result = await freshserviceRequest(apiPath);
+      const result = await fsRequest(finalPath);
       res.writeHead(result.status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result.body));
     } catch (err) {
@@ -89,8 +106,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n✅  Freshservice Dashboard running at http://localhost:${PORT}`);
-  console.log(`   Debug agents : http://localhost:${PORT}/debug/agents`);
-  console.log(`   Debug tickets: http://localhost:${PORT}/debug/tickets`);
-  console.log(`   Debug groups : http://localhost:${PORT}/debug/groups\n`);
+  console.log(`\n✅  Freshservice Dashboard: http://localhost:${PORT}`);
+  console.log(`   Groups debug : http://localhost:${PORT}/debug/groups\n`);
 });
