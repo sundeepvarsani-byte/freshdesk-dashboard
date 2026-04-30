@@ -121,6 +121,11 @@
   .res-stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
   .res-divider{height:1px;background:var(--border);margin:1rem 0;}
   .view{display:none;}.view.active{display:block;}
+  .live-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;position:relative;overflow:hidden;}
+  .live-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--lc-color,var(--accent));border-radius:12px 12px 0 0;}
+  .live-card-val{font-size:32px;font-weight:600;letter-spacing:-0.04em;line-height:1;margin-bottom:4px;}
+  .live-card-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+  .live-card-sub{font-size:11px;color:var(--muted);margin-top:6px;}
 
   select{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font);font-size:12px;}
 </style>
@@ -194,6 +199,10 @@
 
       <div class="ws-tabs" id="wsTabs"></div>
       <div id="errorMsg" style="display:none" class="error-msg"></div>
+
+      <!-- LIVE STATUS BANNER -->
+      <div id="liveBanner" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;"></div>
+
       <div class="metrics" id="metricsGrid"><div class="loading"><div class="spinner"></div>Loading…</div></div>
 
       <div class="charts-row">
@@ -354,6 +363,33 @@ function buildTabs() {
 
   tabsEl.innerHTML = tabsHTML;
   wsFilter.innerHTML = optHTML;
+}
+
+// ── LIVE STATUS BANNER ────────────────────────────────────────────────────────
+function renderLiveBanner() {
+  // Always uses ALL tickets for workspace — no date filter
+  const ws = filterByWS(allTickets);
+  const wsLabel = currentWS === 'all' ? 'All Helpdesks' : (WS[currentWS]?.name || 'Helpdesk');
+
+  const open       = ws.filter(x => x.status === 2).length;
+  const onHold     = ws.filter(x => x.status === 6).length;
+  const thirdParty = ws.filter(x => x.status === 7).length;
+  const pending    = ws.filter(x => x.status === 3).length;
+  const active     = open + onHold + thirdParty + pending;
+
+  const cards = [
+    { label: 'Total active',  value: active,     sub: 'Open + waiting',         color: currentWS==='all'?'#4f8ef7':(WS[currentWS]?.color||'#4f8ef7') },
+    { label: 'Open',          value: open,        sub: 'Being worked on',        color: '#4f8ef7' },
+    { label: 'On hold',       value: onHold,      sub: 'Waiting on requester',   color: '#9b72f5' },
+    { label: '3rd party',     value: thirdParty,  sub: 'Waiting on 3rd party',   color: '#fb923c' },
+  ];
+
+  document.getElementById('liveBanner').innerHTML = cards.map(c => `
+    <div class="live-card" style="--lc-color:${c.color}">
+      <div class="live-card-label">${c.label}</div>
+      <div class="live-card-val" style="color:${c.color}">${c.value}</div>
+      <div class="live-card-sub">${c.sub}</div>
+    </div>`).join('');
 }
 
 // ── RENDER METRICS ─────────────────────────────────────────────────────────────
@@ -671,6 +707,7 @@ function setWSTab(btn,id) {
 
 function renderAll() {
   buildTabs();
+  renderLiveBanner();
   renderMetrics();
   renderCharts();
   renderStatus();

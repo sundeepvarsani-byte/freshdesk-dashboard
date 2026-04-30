@@ -33,17 +33,47 @@ function fsRequest(apiPath) {
 }
 
 async function getTicketsForWorkspace(workspaceId) {
-  let all = [];
+  // Fetch two sets in parallel:
+  // 1. Recent tickets (last 90 days) for charts/trends - up to 1500
+  // 2. ALL currently active tickets (open, on hold, 3rd party) regardless of age
+  const ACTIVE_STATUSES = [2, 3, 6, 7]; // Open, Pending, On Hold, 3rd Party
+
+  // Fetch recent tickets for history/charts
+  let recent = [];
   for (let page = 1; page <= 15; page++) {
     const result = await fsRequest(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc&workspace_id=${workspaceId}`);
     const body = result.body;
     const batch = body.tickets || (Array.isArray(body) ? body : []);
     if (!batch.length) break;
     batch.forEach(t => { if (!t.workspace_id) t.workspace_id = workspaceId; });
-    all = all.concat(batch);
+    recent = recent.concat(batch);
     if (batch.length < 100) break;
   }
-  return all;
+
+  // Fetch ALL active tickets for each active status separately
+  let activeTickets = [];
+  for (const status of ACTIVE_STATUSES) {
+    for (let page = 1; page <= 10; page++) {
+      const result = await fsRequest(`/tickets?per_page=100&page=${page}&status=${status}&workspace_id=${workspaceId}`);
+      const body = result.body;
+      const batch = body.tickets || (Array.isArray(body) ? body : []);
+      if (!batch.length) break;
+      batch.forEach(t => { if (!t.workspace_id) t.workspace_id = workspaceId; });
+      activeTickets = activeTickets.concat(batch);
+      if (batch.length < 100) break;
+    }
+  }
+
+  // Merge — deduplicate by ticket id, active tickets take priority
+  const seen = new Set();
+  const merged = [];
+  for (const t of [...activeTickets, ...recent]) {
+    if (!seen.has(t.id)) {
+      seen.add(t.id);
+      merged.push(t);
+    }
+  }
+  return merged;
 }
 
 async function getAgentsForWorkspace(workspaceId) {
