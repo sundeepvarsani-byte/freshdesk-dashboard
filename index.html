@@ -110,6 +110,14 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .error-msg{background:rgba(229,83,83,0.1);border:1px solid rgba(229,83,83,0.3);border-radius:8px;padding:12px 16px;color:#f98080;font-size:13px;margin-bottom:1.5rem;}
   .mono{font-family:var(--mono);}
+  .res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:1.25rem;}
+  .res-card{background:var(--surface2);border-radius:8px;padding:12px 14px;}
+  .res-agent{font-size:12px;font-weight:500;margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+  .res-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .res-stat{text-align:center;}
+  .res-stat-val{font-size:16px;font-weight:600;font-family:var(--mono);line-height:1;}
+  .res-stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+  .res-divider{height:1px;background:var(--border);margin:1rem 0;}
   .view{display:none;}.view.active{display:block;}
 
   select{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font);font-size:12px;}
@@ -205,6 +213,20 @@
         <div class="card">
           <div class="card-header"><div class="card-title">Agent performance</div></div>
           <div id="agentPerf"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- IT RESOLUTION TIME — only shown when IT workspace selected -->
+      <div id="itResolutionSection" style="display:none;margin-top:12px;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">IT agent resolution time</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Avg time from ticket creation to close/resolve · based on loaded tickets</div>
+            </div>
+            <div class="card-badge">IT only</div>
+          </div>
+          <div id="itResolutionContent"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
     </div>
@@ -475,6 +497,131 @@ function renderAgentsView() {
   </table>`;
 }
 
+// ── IT RESOLUTION TIME ────────────────────────────────────────────────────────
+function formatDuration(hours) {
+  if (hours < 1) return `${Math.round(hours * 60)}m`;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const d = Math.floor(hours / 24);
+  const h = Math.round(hours % 24);
+  return h > 0 ? `${d}d ${h}h` : `${d}d`;
+}
+
+function renderITResolution() {
+  const section = document.getElementById('itResolutionSection');
+
+  // Only show this panel when viewing IT workspace
+  if (currentWS !== 2 && currentWS !== 'all') {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  // Only use IT tickets that are resolved or closed and have both timestamps
+  const itTickets = filterByDate(allTickets).filter(t =>
+    t.workspace_id === 2 &&
+    (t.status === 4 || t.status === 5) &&
+    t.created_at && t.updated_at
+  );
+
+  if (!itTickets.length || !allAgents.length) {
+    document.getElementById('itResolutionContent').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;padding:8px 0">No resolved IT tickets in this period.</div>';
+    return;
+  }
+
+  // Calculate per-agent stats
+  const COLORS = ['#4f8ef7','#1CB47A','#f5a623','#9b72f5','#e55353','#64d2b0','#fb923c','#a78bfa'];
+  const itAgents = allAgents.filter(a =>
+    itTickets.some(t => t.responder_id === a.id)
+  );
+
+  const agentStats = itAgents.map((a, i) => {
+    const mine = itTickets.filter(t => t.responder_id === a.id);
+    if (!mine.length) return null;
+
+    const durations = mine.map(t => {
+      const created = new Date(t.created_at);
+      const closed  = new Date(t.updated_at);
+      return (closed - created) / 3600000; // hours
+    }).filter(h => h > 0);
+
+    if (!durations.length) return null;
+
+    const avg = durations.reduce((a,b) => a+b, 0) / durations.length;
+    const min = Math.min(...durations);
+    const max = Math.max(...durations);
+    const under24 = durations.filter(h => h <= 24).length;
+    const slaRate = Math.round(under24 / durations.length * 100);
+
+    return {
+      name: agentName(a),
+      color: COLORS[i % COLORS.length],
+      count: mine.length,
+      avg, min, max, slaRate,
+    };
+  }).filter(Boolean).sort((a, b) => a.avg - b.avg); // fastest first
+
+  if (!agentStats.length) {
+    document.getElementById('itResolutionContent').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;padding:8px 0">No agent-assigned resolved tickets found.</div>';
+    return;
+  }
+
+  // Overall summary
+  const allDurations = itTickets
+    .map(t => (new Date(t.updated_at) - new Date(t.created_at)) / 3600000)
+    .filter(h => h > 0);
+  const overallAvg = allDurations.reduce((a,b) => a+b, 0) / allDurations.length;
+  const overallSLA = Math.round(allDurations.filter(h => h <= 24).length / allDurations.length * 100);
+
+  document.getElementById('itResolutionContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;text-align:center;">
+        <div style="font-size:22px;font-weight:600;font-family:var(--mono);color:var(--accent)">${formatDuration(overallAvg)}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">Avg resolution time</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;text-align:center;">
+        <div style="font-size:22px;font-weight:600;font-family:var(--mono);color:var(--blue)">${itTickets.length}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">Resolved tickets</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;text-align:center;">
+        <div style="font-size:22px;font-weight:600;font-family:var(--mono);color:${overallSLA>=80?'var(--accent)':'#f5a623'}">${overallSLA}%</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">Closed within 24h</div>
+      </div>
+    </div>
+
+    <div class="res-divider"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">By agent — fastest first</div>
+
+    <div class="res-grid">
+      ${agentStats.map(a => `
+        <div class="res-card">
+          <div class="res-agent">
+            <div class="avatar" style="width:22px;height:22px;font-size:9px;background:${a.color}22;color:${a.color}">${initials(a.name)}</div>
+            <span>${a.name}</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--muted)">${a.count} tickets</span>
+          </div>
+          <div class="res-stats">
+            <div class="res-stat">
+              <div class="res-stat-val" style="color:var(--accent)">${formatDuration(a.avg)}</div>
+              <div class="res-stat-lbl">Avg</div>
+            </div>
+            <div class="res-stat">
+              <div class="res-stat-val" style="color:var(--blue)">${formatDuration(a.min)}</div>
+              <div class="res-stat-lbl">Fastest</div>
+            </div>
+            <div class="res-stat">
+              <div class="res-stat-val" style="color:${a.slaRate>=80?'var(--accent)':'#f5a623'}">${a.slaRate}%</div>
+              <div class="res-stat-lbl">Within 24h</div>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">
+      * Resolution time calculated from ticket creation to last update on resolved/closed tickets.
+    </div>`;
+}
+
 // ── NAV ────────────────────────────────────────────────────────────────────────
 function showView(name,btn) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -511,6 +658,7 @@ function renderAll() {
   renderCharts();
   renderStatus();
   renderAgentPerf();
+  renderITResolution();
 }
 
 // ── LOAD ───────────────────────────────────────────────────────────────────────
