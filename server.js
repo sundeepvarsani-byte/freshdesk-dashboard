@@ -5,7 +5,7 @@ const path = require("path");
 const url = require("url");
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const FRESHDESK_DOMAIN = "searcheducationtrust.freshdesk.com";
+const FRESHDESK_DOMAIN = "searcheducationtrust.freshservice.com";
 const API_KEY = "8qXHhTA54F6QsTyvx0a";
 const PORT = 3000;
 // ─────────────────────────────────────────────────────────────────────────────
