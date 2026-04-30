@@ -358,21 +358,26 @@ function buildTabs() {
 
 // ── RENDER METRICS ─────────────────────────────────────────────────────────────
 function renderMetrics() {
-  const t = getFiltered();
-  const active=t.filter(x=>ACTIVE_STATUSES.includes(x.status)).length;
-  const open=t.filter(x=>x.status===2).length;
-  const onHold=t.filter(x=>x.status===6).length;
-  const thirdParty=t.filter(x=>x.status===7).length;
-  const resolved=t.filter(x=>CLOSED_STATUSES.includes(x.status)).length;
-  const urgent=t.filter(x=>x.priority===4&&ACTIVE_STATUSES.includes(x.status)).length;
-  const total=t.length;
-  const resRate=total?Math.round(resolved/total*100):0;
-  const accent = currentWS==='all'?'#1CB47A':(WS[currentWS]?.color||'#1CB47A');
+  const t = getFiltered();         // date-filtered tickets (for resolved stats)
+  const all = filterByWS(allTickets); // ALL tickets for this workspace (no date filter)
+
+  // Live counts — always show current state regardless of date filter
+  const active     = all.filter(x=>ACTIVE_STATUSES.includes(x.status)).length;
+  const open       = all.filter(x=>x.status===2).length;
+  const onHold     = all.filter(x=>x.status===6).length;
+  const thirdParty = all.filter(x=>x.status===7).length;
+  const urgent     = all.filter(x=>x.priority===4&&ACTIVE_STATUSES.includes(x.status)).length;
+
+  // Resolved within the selected date range
+  const resolved  = t.filter(x=>CLOSED_STATUSES.includes(x.status)).length;
+  const total     = t.length;
+  const resRate   = total?Math.round(resolved/total*100):0;
+  const accent    = currentWS==='all'?'#1CB47A':(WS[currentWS]?.color||'#1CB47A');
 
   document.getElementById('metricsGrid').innerHTML=[
     {label:'Active tickets',value:active,delta:`${open} open · ${onHold} on hold · ${thirdParty} 3rd party`,cls:'delta-neutral',accent:'#4f8ef7'},
-    {label:'Open / Pending',value:open,delta:`${onHold} on hold · ${thirdParty} with 3rd party`,cls:'delta-neutral',accent:'#4f8ef7'},
-    {label:'Resolved / Closed',value:resolved,delta:`${resRate}% resolution rate`,cls:resRate>70?'delta-up':'delta-neutral',accent:'#1CB47A'},
+    {label:'Open',value:open,delta:`${onHold} on hold · ${thirdParty} with 3rd party`,cls:'delta-neutral',accent:'#4f8ef7'},
+    {label:'Resolved / Closed',value:resolved,delta:`${resRate}% in selected period`,cls:resRate>70?'delta-up':'delta-neutral',accent:'#1CB47A'},
     {label:'Urgent active',value:urgent,delta:active?`${Math.round(urgent/active*100)}% of active`:'—',cls:urgent>5?'delta-down':'delta-up',accent:urgent>5?'#e55353':'#1CB47A'},
   ].map(c=>`<div class="metric-card" style="--card-accent:${c.accent}">
     <div class="metric-label">${c.label}</div>
