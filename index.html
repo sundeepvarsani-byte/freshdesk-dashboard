@@ -8,171 +8,125 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #171b26;
-    --surface2: #1e2334;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #f0f2f8;
-    --muted: #7a82a0;
-    --accent: #1CB47A;
-    --accent2: #0e7a50;
-    --blue: #4f8ef7;
-    --amber: #f5a623;
-    --red: #e55353;
-    --purple: #9b72f5;
-    --font: 'DM Sans', sans-serif;
-    --mono: 'DM Mono', monospace;
+    --bg: #0f1117; --surface: #171b26; --surface2: #1e2334;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #f0f2f8; --muted: #7a82a0;
+    --accent: #1CB47A; --blue: #4f8ef7; --amber: #f5a623; --red: #e55353; --purple: #9b72f5;
+    --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 100vh;
-  }
-
-  /* LAYOUT */
-  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .shell { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
 
   /* SIDEBAR */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 1.5rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-  }
-  .brand { display: flex; align-items: center; gap: 10px; padding: 0 0.5rem; }
-  .brand-icon {
-    width: 32px; height: 32px; border-radius: 8px;
-    background: var(--accent);
-    display: flex; align-items: center; justify-content: center;
-  }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 0.5rem; margin-bottom: 0.5rem; }
+  .brand-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; }
   .brand-icon svg { width: 18px; height: 18px; fill: white; }
   .brand-name { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
   .brand-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
   .nav-section { display: flex; flex-direction: column; gap: 2px; }
-  .nav-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 0.75rem; margin-bottom: 6px; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 12px; border-radius: 8px;
-    color: var(--muted); font-size: 13px; cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    text-decoration: none;
-  }
+  .nav-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 0.75rem; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--muted); font-size: 13px; cursor: pointer; transition: background 0.15s, color 0.15s; border: none; background: transparent; width: 100%; text-align: left; font-family: var(--font); }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: rgba(28,180,122,0.15); color: var(--accent); }
   .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* Helpdesk colour dots */
+  .hd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   .sidebar-footer { margin-top: auto; padding: 0 0.5rem; }
-  .connected-badge {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 11px; color: var(--accent);
-    background: rgba(28,180,122,0.1);
-    padding: 6px 10px; border-radius: 6px;
-  }
+  .connected-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--accent); background: rgba(28,180,122,0.1); padding: 6px 10px; border-radius: 6px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   /* MAIN */
   .main { padding: 2rem; overflow-x: hidden; }
-
   .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
   .page-title { font-size: 20px; font-weight: 600; letter-spacing: -0.03em; }
   .page-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
   .filter-group { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
-  .filter-btn {
-    font-family: var(--font); font-size: 12px; padding: 5px 14px;
-    border: none; border-radius: 6px; background: transparent;
-    color: var(--muted); cursor: pointer; transition: all 0.15s;
-  }
+  .filter-btn { font-family: var(--font); font-size: 12px; padding: 5px 14px; border: none; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; }
   .filter-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
 
-  /* METRIC CARDS */
+  /* HELPDESK TABS */
+  .hd-tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .hd-tab { display: flex; align-items: center; gap: 7px; padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: var(--font); }
+  .hd-tab:hover { border-color: var(--border2); color: var(--text); }
+  .hd-tab.active { color: var(--text); border-color: var(--border2); background: var(--surface2); }
+  .hd-tab .tab-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* METRICS */
   .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 1.5rem; }
-  .metric-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; position: relative; overflow: hidden; transition: border-color 0.2s; }
   .metric-card:hover { border-color: var(--border2); }
-  .metric-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: var(--card-accent, var(--accent));
-    border-radius: 12px 12px 0 0;
-  }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--card-accent, var(--accent)); border-radius: 12px 12px 0 0; }
   .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
   .metric-value { font-size: 28px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px; }
-  .metric-delta { font-size: 11px; display: flex; align-items: center; gap: 4px; }
-  .delta-up { color: var(--accent); }
-  .delta-down { color: var(--red); }
-  .delta-neutral { color: var(--muted); }
+  .metric-delta { font-size: 11px; }
+  .delta-up { color: var(--accent); } .delta-down { color: var(--red); } .delta-neutral { color: var(--muted); }
 
-  /* CHART ROW */
+  /* CHARTS */
   .charts-row { display: grid; grid-template-columns: 1.7fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-  }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
   .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
   .card-title { font-size: 13px; font-weight: 500; }
   .card-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; background: rgba(28,180,122,0.12); color: var(--accent); }
 
-  /* BOTTOM ROW */
+  /* BOTTOM */
   .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  /* STATUS LIST */
   .status-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
   .status-item:last-child { border-bottom: none; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .status-name { font-size: 13px; flex: 1; }
   .status-bar-track { flex: 2; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
-  .status-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .status-bar-fill { height: 100%; border-radius: 4px; }
   .status-count { font-size: 13px; font-weight: 500; font-family: var(--mono); min-width: 32px; text-align: right; }
 
-  /* AGENT TABLE */
+  /* TICKETS TABLE */
+  .tickets-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tickets-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 0 10px; text-align: left; font-weight: 400; border-bottom: 1px solid var(--border); }
+  .tickets-table td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+  .tickets-table tr:last-child td { border-bottom: none; }
+  .tickets-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .subject-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px !important; }
+
+  /* AGENTS TABLE */
   .agent-table { width: 100%; border-collapse: collapse; }
   .agent-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 0 10px; text-align: left; font-weight: 400; border-bottom: 1px solid var(--border); }
   .agent-table th:not(:first-child) { text-align: right; }
-  .agent-table td { padding: 9px 0; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13px; }
+  .agent-table td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .agent-table td:not(:first-child) { text-align: right; }
   .agent-table tr:last-child td { border-bottom: none; }
-  .agent-name { display: flex; align-items: center; gap: 8px; }
+  .agent-name-cell { display: flex; align-items: center; gap: 8px; }
   .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
-  .csat-pill { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; }
-  .csat-bar { width: 40px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .csat-bar { width: 40px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 4px; }
   .csat-fill { height: 100%; border-radius: 3px; background: var(--accent); }
-  .mono { font-family: var(--mono); }
 
-  /* LOADING */
-  .loading { display: flex; align-items: center; justify-content: center; height: 120px; color: var(--muted); font-size: 13px; gap: 8px; }
+  /* STATUS / PRIORITY BADGES */
+  .badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 500; }
+  .badge-open { background: rgba(79,142,247,0.15); color: #4f8ef7; }
+  .badge-pending { background: rgba(245,166,35,0.15); color: #f5a623; }
+  .badge-resolved { background: rgba(28,180,122,0.15); color: #1CB47A; }
+  .badge-closed { background: rgba(122,130,160,0.15); color: #7a82a0; }
+  .badge-urgent { background: rgba(229,83,83,0.15); color: #e55353; }
+  .badge-high { background: rgba(245,166,35,0.15); color: #f5a623; }
+  .badge-medium { background: rgba(79,142,247,0.15); color: #4f8ef7; }
+  .badge-low { background: rgba(122,130,160,0.15); color: #7a82a0; }
+
+  .loading { display: flex; align-items: center; justify-content: center; height: 80px; color: var(--muted); font-size: 13px; gap: 8px; }
   .spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ERROR */
-  .error-msg { background: rgba(229,83,83,0.1); border: 1px solid rgba(229,83,83,0.3); border-radius: 8px; padding: 12px 16px; color: #f98080; font-size: 13px; margin-bottom: 1.5rem; display: none; }
+  .error-msg { background: rgba(229,83,83,0.1); border: 1px solid rgba(229,83,83,0.3); border-radius: 8px; padding: 12px 16px; color: #f98080; font-size: 13px; margin-bottom: 1.5rem; }
+  .mono { font-family: var(--mono); }
+  .view { display: none; } .view.active { display: block; }
 </style>
 </head>
 <body>
-
 <div class="shell">
+
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="brand">
@@ -186,307 +140,460 @@
     </div>
 
     <nav class="nav-section">
-      <div class="nav-label">Overview</div>
-      <a class="nav-item active" href="#">
+      <div class="nav-label">Views</div>
+      <button class="nav-item active" onclick="showView('overview',this)">
         <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/></svg>
-        Dashboard
-      </a>
-      <a class="nav-item" href="#">
+        Overview
+      </button>
+      <button class="nav-item" onclick="showView('tickets',this)">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/></svg>
         All Tickets
-      </a>
-      <a class="nav-item" href="#">
+      </button>
+      <button class="nav-item" onclick="showView('agents',this)">
         <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
         Agents
-      </a>
+      </button>
     </nav>
 
+    <div class="nav-divider"></div>
+
     <nav class="nav-section">
-      <div class="nav-label">Reports</div>
-      <a class="nav-item" href="#">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
-        Analytics
-      </a>
-      <a class="nav-item" href="#">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
-        SLA Reports
-      </a>
+      <div class="nav-label">Helpdesks</div>
+      <button class="nav-item" onclick="setHelpdesk('all');showView('overview',this)">
+        <div class="hd-dot" style="background:#7a82a0"></div>
+        All Helpdesks
+      </button>
+      <button class="nav-item" onclick="setHelpdesk('it');showView('overview',this)">
+        <div class="hd-dot" style="background:#4f8ef7"></div>
+        IT Support
+      </button>
+      <button class="nav-item" onclick="setHelpdesk('tgs');showView('overview',this)">
+        <div class="hd-dot" style="background:#1CB47A"></div>
+        TGS Facilities
+      </button>
+      <button class="nav-item" onclick="setHelpdesk('hhs');showView('overview',this)">
+        <div class="hd-dot" style="background:#9b72f5"></div>
+        HHS Facilities
+      </button>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="connected-badge">
-        <div class="dot"></div>
-        Connected to Freshdesk
-      </div>
+      <div class="connected-badge"><div class="dot"></div> Connected · <span id="sidebarTime">—</span></div>
     </div>
   </aside>
 
-  <!-- MAIN CONTENT -->
+  <!-- MAIN -->
   <main class="main">
-    <div class="topbar">
-      <div>
-        <div class="page-title">Support Overview</div>
-        <div class="page-sub" id="lastUpdated">Loading…</div>
+
+    <!-- OVERVIEW VIEW -->
+    <div id="view-overview" class="view active">
+      <div class="topbar">
+        <div>
+          <div class="page-title" id="overviewTitle">All Helpdesks</div>
+          <div class="page-sub" id="lastUpdated">Loading…</div>
+        </div>
+        <div class="filter-group">
+          <button class="filter-btn active" onclick="setFilter(this,'7d')">7 days</button>
+          <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
+          <button class="filter-btn" onclick="setFilter(this,'all')">All time</button>
+        </div>
       </div>
-      <div class="filter-group">
-        <button class="filter-btn active" onclick="setFilter(this,'7d')">7 days</button>
-        <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
-        <button class="filter-btn" onclick="setFilter(this,'90d')">All time</button>
+
+      <!-- Helpdesk tabs -->
+      <div class="hd-tabs">
+        <button class="hd-tab active" onclick="setHelpdeskTab(this,'all')">
+          <span class="tab-dot" style="background:#7a82a0"></span> All Helpdesks
+        </button>
+        <button class="hd-tab" onclick="setHelpdeskTab(this,'it')">
+          <span class="tab-dot" style="background:#4f8ef7"></span> IT Support
+        </button>
+        <button class="hd-tab" onclick="setHelpdeskTab(this,'tgs')">
+          <span class="tab-dot" style="background:#1CB47A"></span> TGS Facilities
+        </button>
+        <button class="hd-tab" onclick="setHelpdeskTab(this,'hhs')">
+          <span class="tab-dot" style="background:#9b72f5"></span> HHS Facilities
+        </button>
+      </div>
+
+      <div id="errorMsg" style="display:none" class="error-msg"></div>
+      <div class="metrics" id="metricsGrid"><div class="loading"><div class="spinner"></div> Loading…</div></div>
+
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><div class="card-title">New vs resolved over time</div><div class="card-badge">Live</div></div>
+          <div style="position:relative;height:200px"><canvas id="trendChart" role="img" aria-label="Ticket trend chart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">By priority</div></div>
+          <div style="position:relative;height:200px"><canvas id="priorityChart" role="img" aria-label="Priority breakdown"></canvas></div>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Status breakdown</div></div>
+          <div id="statusList"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Agent performance</div></div>
+          <div id="agentPerf"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
       </div>
     </div>
 
-    <div class="error-msg" id="errorMsg"></div>
-
-    <div class="metrics" id="metricsGrid">
-      <div class="loading"><div class="spinner"></div> Loading metrics…</div>
-    </div>
-
-    <div class="charts-row">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Ticket volume — new vs resolved</div>
-          <div class="card-badge" id="trendBadge">Live</div>
+    <!-- TICKETS VIEW -->
+    <div id="view-tickets" class="view">
+      <div class="topbar">
+        <div>
+          <div class="page-title">All Tickets</div>
+          <div class="page-sub" id="ticketsCount">Loading…</div>
         </div>
-        <div style="position:relative;height:200px">
-          <canvas id="trendChart" role="img" aria-label="Line chart showing new vs resolved tickets over time"></canvas>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="ticketStatusFilter" onchange="renderTicketsTable()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font);font-size:12px">
+            <option value="all">All statuses</option>
+            <option value="2">Open</option>
+            <option value="3">Pending</option>
+            <option value="4">Resolved</option>
+            <option value="5">Closed</option>
+          </select>
+          <select id="ticketHDFilter" onchange="renderTicketsTable()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font);font-size:12px">
+            <option value="all">All helpdesks</option>
+            <option value="it">IT Support</option>
+            <option value="tgs">TGS Facilities</option>
+            <option value="hhs">HHS Facilities</option>
+          </select>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">By type</div>
-        </div>
-        <div style="position:relative;height:200px">
-          <canvas id="typeChart" role="img" aria-label="Doughnut chart of ticket types"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="bottom-row">
-      <div class="card">
-        <div class="card-header"><div class="card-title">Status breakdown</div></div>
-        <div id="statusList"><div class="loading"><div class="spinner"></div></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Agent performance</div></div>
-        <div id="agentSection"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="card" style="overflow-x:auto">
+        <div id="ticketsTableWrap"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </div>
+
+    <!-- AGENTS VIEW -->
+    <div id="view-agents" class="view">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Agents</div>
+          <div class="page-sub" id="agentsCount">Loading…</div>
+        </div>
+      </div>
+      <div class="card">
+        <div id="agentsTableWrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
 <script>
-const API = (path) => fetch('/api' + path).then(r => r.json());
-
-let tChart, typeChart;
-let allTickets = [], allAgents = [];
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let allTickets = [], allAgents = [], allGroups = [];
 let currentFilter = '7d';
+let currentHelpdesk = 'all';
+let tChart, pChart;
 
-// ── STATUS LABELS ─────────────────────────────────────────────────────────────
-// Freshdesk: 2=Open, 3=Pending, 4=Resolved, 5=Closed
-const STATUS_MAP = { 2: 'Open', 3: 'Pending', 4: 'Resolved', 5: 'Closed' };
-const STATUS_COLORS = { 2: '#4f8ef7', 3: '#f5a623', 4: '#1CB47A', 5: '#7a82a0' };
-const PRIORITY_MAP = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'Urgent' };
+// ── HELPDESK GROUP KEYWORDS ───────────────────────────────────────────────────
+// We match tickets to helpdesks by group name keywords
+// Update these if your Freshservice group names differ
+const HD_CONFIG = {
+  it:  { label: 'IT Support',      color: '#4f8ef7', keywords: ['it','tech','technology','information'] },
+  tgs: { label: 'TGS Facilities',  color: '#1CB47A', keywords: ['tgs','facilities','facility'] },
+  hhs: { label: 'HHS Facilities',  color: '#9b72f5', keywords: ['hhs','health','humanities'] },
+};
 
-function filterTickets(tickets, range) {
-  const now = new Date();
-  const days = range === '7d' ? 7 : range === '30d' ? 30 : 9999;
-  const cutoff = new Date(now - days * 86400000);
+function getTicketHelpdesk(ticket) {
+  if (!ticket.group_id) return 'other';
+  const group = allGroups.find(g => g.id === ticket.group_id);
+  if (!group) return 'other';
+  const name = (group.name || '').toLowerCase();
+  for (const [key, cfg] of Object.entries(HD_CONFIG)) {
+    if (cfg.keywords.some(kw => name.includes(kw))) return key;
+  }
+  return 'other';
+}
+
+// ── FILTERING ─────────────────────────────────────────────────────────────────
+function filterByDate(tickets) {
+  if (currentFilter === 'all') return tickets;
+  const days = currentFilter === '7d' ? 7 : 30;
+  const cutoff = new Date(Date.now() - days * 86400000);
   return tickets.filter(t => new Date(t.created_at) >= cutoff);
 }
 
-function renderMetrics(tickets) {
-  const filtered = filterTickets(tickets, currentFilter);
-  const open = filtered.filter(t => t.status === 2).length;
-  const pending = filtered.filter(t => t.status === 3).length;
-  const resolved = filtered.filter(t => t.status === 4 || t.status === 5).length;
-  const total = filtered.length;
-
-  // Avg first response (approx from fr_due_by vs created_at)
-  const urgent = filtered.filter(t => t.priority === 4).length;
-
-  const cards = [
-    { label: 'Total tickets', value: total, delta: `${currentFilter === '7d' ? 'Past 7 days' : currentFilter === '30d' ? 'Past 30 days' : 'All time'}`, cls: 'delta-neutral', accent: '#4f8ef7' },
-    { label: 'Open', value: open, delta: `${pending} pending`, cls: 'delta-neutral', accent: '#4f8ef7' },
-    { label: 'Resolved / Closed', value: resolved, delta: total ? Math.round(resolved/total*100)+'% resolution rate' : '—', cls: 'delta-up', accent: '#1CB47A' },
-    { label: 'Urgent priority', value: urgent, delta: total ? Math.round(urgent/total*100)+'% of tickets' : '—', cls: urgent > 5 ? 'delta-down' : 'delta-up', accent: urgent > 5 ? '#e55353' : '#1CB47A' },
-  ];
-
-  document.getElementById('metricsGrid').innerHTML = cards.map(c => `
-    <div class="metric-card" style="--card-accent:${c.accent}">
-      <div class="metric-label">${c.label}</div>
-      <div class="metric-value">${c.value}</div>
-      <div class="metric-delta ${c.cls}">${c.delta}</div>
-    </div>`).join('');
+function filterByHelpdesk(tickets) {
+  if (currentHelpdesk === 'all') return tickets;
+  return tickets.filter(t => getTicketHelpdesk(t) === currentHelpdesk);
 }
 
-function renderCharts(tickets) {
-  const filtered = filterTickets(tickets, currentFilter);
+function getFiltered() {
+  return filterByDate(filterByHelpdesk(allTickets));
+}
 
-  // Trend — group by day/week
-  const buckets = {};
-  const resolvedBuckets = {};
-  const days = currentFilter === '7d' ? 7 : currentFilter === '30d' ? 30 : 90;
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const key = currentFilter === '7d'
-      ? d.toLocaleDateString('en-GB', { weekday: 'short' })
-      : currentFilter === '30d'
-        ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-        : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    buckets[key] = (buckets[key] || 0);
-    resolvedBuckets[key] = (resolvedBuckets[key] || 0);
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const STATUS_MAP   = { 2:'Open', 3:'Pending', 4:'Resolved', 5:'Closed' };
+const STATUS_COLOR = { 2:'#4f8ef7', 3:'#f5a623', 4:'#1CB47A', 5:'#7a82a0' };
+const STATUS_CLS   = { 2:'badge-open', 3:'badge-pending', 4:'badge-resolved', 5:'badge-closed' };
+const PRI_MAP      = { 1:'Low', 2:'Medium', 3:'High', 4:'Urgent' };
+const PRI_CLS      = { 1:'badge-low', 2:'badge-medium', 3:'badge-high', 4:'badge-urgent' };
+const COLORS       = ['#4f8ef7','#1CB47A','#f5a623','#9b72f5','#e55353','#64d2b0'];
+
+function agentName(agent) {
+  // Freshservice may store name at different paths — try all
+  return agent?.contact?.name
+    || agent?.name
+    || agent?.first_name && agent?.last_name ? `${agent.first_name} ${agent.last_name}`.trim() : null
+    || agent?.first_name
+    || agent?.email?.split('@')[0]
+    || 'Agent';
+}
+
+function initials(name) {
+  return name.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase();
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr);
+  const h = Math.floor(diff / 3600000);
+  if (h < 1) return 'Just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+// ── RENDER METRICS ────────────────────────────────────────────────────────────
+function renderMetrics() {
+  const t = getFiltered();
+  const open     = t.filter(x => x.status === 2).length;
+  const resolved = t.filter(x => x.status === 4 || x.status === 5).length;
+  const urgent   = t.filter(x => x.priority === 4).length;
+  const total    = t.length;
+  const resRate  = total ? Math.round(resolved/total*100) : 0;
+  const hdColor  = currentHelpdesk === 'all' ? '#1CB47A' : HD_CONFIG[currentHelpdesk]?.color || '#1CB47A';
+
+  document.getElementById('metricsGrid').innerHTML = [
+    { label:'Total tickets',       value:total,    delta: currentFilter==='7d'?'Past 7 days':currentFilter==='30d'?'Past 30 days':'All time', cls:'delta-neutral', accent:'#7a82a0' },
+    { label:'Open',                value:open,     delta:`${t.filter(x=>x.status===3).length} pending`, cls:'delta-neutral', accent:'#4f8ef7' },
+    { label:'Resolved / Closed',   value:resolved, delta:`${resRate}% resolution rate`, cls:resRate>70?'delta-up':'delta-neutral', accent:'#1CB47A' },
+    { label:'Urgent',              value:urgent,   delta:total?`${Math.round(urgent/total*100)}% of tickets`:'—', cls:urgent>5?'delta-down':'delta-up', accent:urgent>5?'#e55353':'#1CB47A' },
+  ].map(c=>`<div class="metric-card" style="--card-accent:${c.accent}">
+    <div class="metric-label">${c.label}</div>
+    <div class="metric-value">${c.value}</div>
+    <div class="metric-delta ${c.cls}">${c.delta}</div>
+  </div>`).join('');
+}
+
+// ── RENDER CHARTS ─────────────────────────────────────────────────────────────
+function renderCharts() {
+  const t = getFiltered();
+  const days = currentFilter === '7d' ? 7 : currentFilter === '30d' ? 30 : 60;
+
+  // Build date buckets
+  const newB = {}, resB = {};
+  for (let i = days-1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const k = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    newB[k] = 0; resB[k] = 0;
   }
-
-  filtered.forEach(t => {
-    const d = new Date(t.created_at);
-    const key = currentFilter === '7d'
-      ? d.toLocaleDateString('en-GB', { weekday: 'short' })
-      : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    if (key in buckets) buckets[key]++;
-    if ((t.status === 4 || t.status === 5) && key in resolvedBuckets) resolvedBuckets[key]++;
+  t.forEach(ticket => {
+    const k = new Date(ticket.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    if (k in newB) newB[k]++;
+    if ((ticket.status===4||ticket.status===5) && k in resB) resB[k]++;
   });
 
-  // Show only last 10 labels for readability
-  const labels = Object.keys(buckets).slice(-10);
-  const newData = labels.map(k => buckets[k]);
-  const resData = labels.map(k => resolvedBuckets[k]);
+  const labels = Object.keys(newB).slice(-12);
+  const hdColor = currentHelpdesk==='all' ? '#4f8ef7' : HD_CONFIG[currentHelpdesk]?.color||'#4f8ef7';
 
   if (tChart) tChart.destroy();
   tChart = new Chart(document.getElementById('trendChart'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'New', data: newData, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.1)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2 },
-        { label: 'Resolved', data: resData, borderColor: '#1CB47A', backgroundColor: 'rgba(28,180,122,0.1)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2, borderDash: [4,3] },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#7a82a0', boxWidth: 10, font: { size: 11, family: 'DM Sans' }, padding: 16 } } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#7a82a0', font: { size: 10 }, maxTicksLimit: 8 } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a82a0', font: { size: 10 } } }
-      }
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'New',      data:labels.map(k=>newB[k]), borderColor:hdColor, backgroundColor:hdColor+'1a', fill:true, tension:0.4, pointRadius:3, borderWidth:2 },
+      { label:'Resolved', data:labels.map(k=>resB[k]), borderColor:'#1CB47A', backgroundColor:'#1CB47A1a', fill:true, tension:0.4, pointRadius:3, borderWidth:2, borderDash:[4,3] },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#7a82a0', boxWidth:10, font:{size:11,family:'DM Sans'}, padding:16 } } },
+      scales:{ x:{ grid:{display:false}, ticks:{color:'#7a82a0',font:{size:10},maxTicksLimit:8} }, y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#7a82a0',font:{size:10}} } }
     }
   });
 
-  // Type / priority doughnut
-  const pCounts = [1,2,3,4].map(p => filtered.filter(t => t.priority === p).length);
-  if (typeChart) typeChart.destroy();
-  typeChart = new Chart(document.getElementById('typeChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Low','Medium','High','Urgent'],
-      datasets: [{ data: pCounts, backgroundColor: ['#7a82a0','#4f8ef7','#f5a623','#e55353'], borderWidth: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '68%',
-      plugins: { legend: { position: 'right', labels: { color: '#7a82a0', boxWidth: 10, font: { size: 11, family: 'DM Sans' }, padding: 10 } } }
+  const pCounts = [1,2,3,4].map(p=>t.filter(x=>x.priority===p).length);
+  if (pChart) pChart.destroy();
+  pChart = new Chart(document.getElementById('priorityChart'), {
+    type:'doughnut',
+    data:{ labels:['Low','Medium','High','Urgent'], datasets:[{ data:pCounts, backgroundColor:['#7a82a0','#4f8ef7','#f5a623','#e55353'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{ position:'right', labels:{ color:'#7a82a0', boxWidth:10, font:{size:11,family:'DM Sans'}, padding:10 } } }
     }
   });
 }
 
-function renderStatus(tickets) {
-  const filtered = filterTickets(tickets, currentFilter);
-  const total = filtered.length || 1;
-  const statuses = [2,3,4,5].map(s => ({
-    label: STATUS_MAP[s],
-    count: filtered.filter(t => t.status === s).length,
-    color: STATUS_COLORS[s],
-  }));
-  const maxCount = Math.max(...statuses.map(s => s.count), 1);
-
-  document.getElementById('statusList').innerHTML = statuses.map(s => `
-    <div class="status-item">
-      <div class="status-dot" style="background:${s.color}"></div>
-      <div class="status-name">${s.label}</div>
-      <div class="status-bar-track"><div class="status-bar-fill" style="width:${Math.round(s.count/maxCount*100)}%;background:${s.color}"></div></div>
-      <div class="status-count mono">${s.count}</div>
-    </div>`).join('');
+// ── RENDER STATUS ─────────────────────────────────────────────────────────────
+function renderStatus() {
+  const t = getFiltered();
+  const maxC = Math.max(...[2,3,4,5].map(s=>t.filter(x=>x.status===s).length), 1);
+  document.getElementById('statusList').innerHTML = [2,3,4,5].map(s=>{
+    const c = t.filter(x=>x.status===s).length;
+    return `<div class="status-item">
+      <div class="status-dot" style="background:${STATUS_COLOR[s]}"></div>
+      <div class="status-name">${STATUS_MAP[s]}</div>
+      <div class="status-bar-track"><div class="status-bar-fill" style="width:${Math.round(c/maxC*100)}%;background:${STATUS_COLOR[s]}"></div></div>
+      <div class="status-count mono">${c}</div>
+    </div>`;
+  }).join('');
 }
 
-function renderAgents(agents, tickets) {
-  if (!agents.length) {
-    document.getElementById('agentSection').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No agent data available.</div>';
-    return;
-  }
-  const filtered = filterTickets(tickets, currentFilter);
-  const colors = ['#4f8ef7','#1CB47A','#f5a623','#9b72f5','#e55353','#64d2b0'];
+// ── RENDER AGENT PERFORMANCE ──────────────────────────────────────────────────
+function renderAgentPerf() {
+  if (!allAgents.length) { document.getElementById('agentPerf').innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No agent data.</div>'; return; }
+  const t = getFiltered();
+  const stats = allAgents.slice(0,8).map((a,i)=>{
+    const mine = t.filter(x=>x.responder_id===a.id);
+    return { name:agentName(a), resolved:mine.filter(x=>x.status===4||x.status===5).length, open:mine.filter(x=>x.status===2).length, color:COLORS[i%COLORS.length] };
+  }).sort((a,b)=>b.resolved-a.resolved).slice(0,6);
+  const maxR = Math.max(...stats.map(s=>s.resolved),1);
 
-  const agentStats = agents.slice(0, 6).map((a, i) => {
-    const myTickets = filtered.filter(t => t.responder_id === a.id);
-    const resolved = myTickets.filter(t => t.status === 4 || t.status === 5).length;
-    const name = a.contact?.name || a.name || 'Agent';
-    return { name, resolved, color: colors[i % colors.length] };
-  }).sort((a,b) => b.resolved - a.resolved);
-
-  const maxRes = Math.max(...agentStats.map(a => a.resolved), 1);
-
-  document.getElementById('agentSection').innerHTML = `
-    <table class="agent-table">
-      <thead><tr><th>Agent</th><th>Resolved</th><th style="text-align:left;padding-left:8px">Rate</th></tr></thead>
-      <tbody>${agentStats.map(a => `
-        <tr>
-          <td><div class="agent-name">
-            <div class="avatar" style="background:${a.color}22;color:${a.color}">${a.name.split(' ').map(x=>x[0]).join('').slice(0,2)}</div>
-            <span>${a.name.split(' ')[0]}</span>
-          </div></td>
-          <td class="mono" style="text-align:right">${a.resolved}</td>
-          <td style="text-align:left;padding-left:8px">
-            <div class="csat-bar"><div class="csat-fill" style="width:${Math.round(a.resolved/maxRes*100)}%"></div></div>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  document.getElementById('agentPerf').innerHTML = `<table class="agent-table">
+    <thead><tr><th>Agent</th><th>Resolved</th><th>Open</th><th style="text-align:left;padding-left:8px">Rate</th></tr></thead>
+    <tbody>${stats.map(a=>`<tr>
+      <td><div class="agent-name-cell"><div class="avatar" style="background:${a.color}22;color:${a.color}">${initials(a.name)}</div>${a.name.split(' ')[0]}</div></td>
+      <td class="mono">${a.resolved}</td>
+      <td class="mono" style="color:var(--muted)">${a.open}</td>
+      <td style="padding-left:8px"><div class="csat-bar"><div class="csat-fill" style="width:${Math.round(a.resolved/maxR*100)}%"></div></div></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
 }
 
-async function loadData() {
-  try {
-    document.getElementById('errorMsg').style.display = 'none';
+// ── RENDER TICKETS TABLE ──────────────────────────────────────────────────────
+function renderTicketsTable() {
+  const statusF = document.getElementById('ticketStatusFilter').value;
+  const hdF = document.getElementById('ticketHDFilter').value;
+  let t = filterByDate(allTickets);
+  if (statusF !== 'all') t = t.filter(x=>x.status===parseInt(statusF));
+  if (hdF !== 'all') t = t.filter(x=>getTicketHelpdesk(x)===hdF);
+  t = t.slice(0,100);
 
-    // Freshservice wraps responses: { tickets: [...] } and { agents: [...] }
-    let tickets = [];
-    for (let page = 1; page <= 3; page++) {
-      const resp = await API(`/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc`);
-      const batch = resp.tickets || (Array.isArray(resp) ? resp : []);
-      if (batch.length === 0) break;
-      tickets = tickets.concat(batch);
-      if (batch.length < 100) break;
-    }
-    allTickets = tickets;
-
-    // Fetch agents
-    const agentsResp = await API('/agents?per_page=50');
-    allAgents = agentsResp.agents || (Array.isArray(agentsResp) ? agentsResp : []);
-
-    // Update timestamp
-    document.getElementById('lastUpdated').textContent =
-      'Last updated: ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
-    renderAll();
-  } catch (err) {
-    const el = document.getElementById('errorMsg');
-    el.style.display = 'block';
-    el.textContent = 'Could not connect to Freshdesk API. Make sure the proxy server is running. Error: ' + err.message;
-  }
+  document.getElementById('ticketsCount').textContent = `Showing ${t.length} tickets`;
+  document.getElementById('ticketsTableWrap').innerHTML = t.length === 0
+    ? '<div style="color:var(--muted);font-size:13px;padding:1rem 0">No tickets match this filter.</div>'
+    : `<table class="tickets-table">
+    <thead><tr><th>#</th><th>Subject</th><th>Status</th><th>Priority</th><th>Helpdesk</th><th>Agent</th><th>Created</th></tr></thead>
+    <tbody>${t.map(ticket=>{
+      const agent = allAgents.find(a=>a.id===ticket.responder_id);
+      const hd = getTicketHelpdesk(ticket);
+      const hdCfg = HD_CONFIG[hd];
+      return `<tr>
+        <td class="mono" style="color:var(--muted)">#${ticket.id}</td>
+        <td class="subject-cell" title="${(ticket.subject||'').replace(/"/g,'&quot;')}">${ticket.subject||'(no subject)'}</td>
+        <td><span class="badge ${STATUS_CLS[ticket.status]||'badge-low'}">${STATUS_MAP[ticket.status]||ticket.status}</span></td>
+        <td><span class="badge ${PRI_CLS[ticket.priority]||'badge-low'}">${PRI_MAP[ticket.priority]||'—'}</span></td>
+        <td>${hdCfg?`<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px"><span style="width:6px;height:6px;border-radius:50%;background:${hdCfg.color};flex-shrink:0"></span>${hdCfg.label}</span>`:'<span style="color:var(--muted);font-size:11px">Other</span>'}</td>
+        <td style="color:${agent?'var(--text)':'var(--muted)'};font-size:12px">${agent?agentName(agent):'Unassigned'}</td>
+        <td style="color:var(--muted);font-size:11px">${timeAgo(ticket.created_at)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
 }
 
-function renderAll() {
-  renderMetrics(allTickets);
-  renderCharts(allTickets);
-  renderStatus(allTickets);
-  renderAgents(allAgents, allTickets);
+// ── RENDER AGENTS VIEW ────────────────────────────────────────────────────────
+function renderAgentsView() {
+  if (!allAgents.length) { document.getElementById('agentsTableWrap').innerHTML='<div style="color:var(--muted);font-size:13px;padding:1rem 0">No agents found.</div>'; return; }
+  document.getElementById('agentsCount').textContent = `${allAgents.length} agents`;
+  document.getElementById('agentsTableWrap').innerHTML = `<table class="agent-table">
+    <thead><tr><th>Agent</th><th>Email</th><th>Open tickets</th><th>Resolved (all time)</th></tr></thead>
+    <tbody>${allAgents.map((a,i)=>{
+      const name = agentName(a);
+      const open = allTickets.filter(t=>t.responder_id===a.id&&t.status===2).length;
+      const resolved = allTickets.filter(t=>t.responder_id===a.id&&(t.status===4||t.status===5)).length;
+      return `<tr>
+        <td><div class="agent-name-cell"><div class="avatar" style="background:${COLORS[i%COLORS.length]}22;color:${COLORS[i%COLORS.length]}">${initials(name)}</div>${name}</div></td>
+        <td style="color:var(--muted);font-size:12px">${a.email||a.contact?.email||'—'}</td>
+        <td class="mono">${open}</td>
+        <td class="mono">${resolved}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showView(viewName, btn) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+viewName).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (viewName==='tickets') renderTicketsTable();
+  if (viewName==='agents') renderAgentsView();
 }
 
 function setFilter(btn, key) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   currentFilter = key;
   renderAll();
 }
 
-// Initial load + auto-refresh every 2 minutes
+function setHelpdeskTab(btn, key) {
+  document.querySelectorAll('.hd-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentHelpdesk = key;
+  const cfg = HD_CONFIG[key];
+  document.getElementById('overviewTitle').textContent = cfg ? cfg.label : 'All Helpdesks';
+  renderAll();
+}
+
+function setHelpdesk(key) {
+  currentHelpdesk = key;
+  // Also sync the tab buttons
+  document.querySelectorAll('.hd-tab').forEach(b=>b.classList.remove('active'));
+  const tabs = document.querySelectorAll('.hd-tab');
+  const tabMap = {'all':0,'it':1,'tgs':2,'hhs':3};
+  if (tabs[tabMap[key]]) tabs[tabMap[key]].classList.add('active');
+}
+
+function renderAll() {
+  renderMetrics();
+  renderCharts();
+  renderStatus();
+  renderAgentPerf();
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    document.getElementById('errorMsg').style.display = 'none';
+
+    // Tickets (up to 300)
+    let tickets = [];
+    for (let page=1; page<=3; page++) {
+      const resp = await fetch(`/api/tickets?per_page=100&page=${page}&order_by=created_at&order_type=desc`).then(r=>r.json());
+      const batch = resp.tickets || (Array.isArray(resp) ? resp : []);
+      if (!batch.length) break;
+      tickets = tickets.concat(batch);
+      if (batch.length < 100) break;
+    }
+    allTickets = tickets;
+
+    // Agents
+    const agResp = await fetch('/api/agents?per_page=100').then(r=>r.json());
+    allAgents = agResp.agents || (Array.isArray(agResp) ? agResp : []);
+
+    // Groups (needed for helpdesk routing)
+    const grResp = await fetch('/api/groups?per_page=100').then(r=>r.json());
+    allGroups = grResp.groups || (Array.isArray(grResp) ? grResp : []);
+
+    const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('lastUpdated').textContent = `Last updated ${now} · ${allTickets.length} tickets loaded`;
+    document.getElementById('sidebarTime').textContent = now;
+
+    renderAll();
+    renderTicketsTable();
+    renderAgentsView();
+
+  } catch(err) {
+    const el = document.getElementById('errorMsg');
+    el.style.display='block';
+    el.textContent = 'Could not load data: ' + err.message;
+  }
+}
+
 loadData();
 setInterval(loadData, 120000);
 </script>
