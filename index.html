@@ -190,10 +190,13 @@
           <div class="page-title" id="overviewTitle">All Helpdesks</div>
           <div class="page-sub" id="lastUpdated">Loading…</div>
         </div>
-        <div class="filter-group">
-          <button class="filter-btn active" onclick="setFilter(this,'7d')">7 days</button>
-          <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
-          <button class="filter-btn" onclick="setFilter(this,'all')">All time</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="manualRefresh(this)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:6px;font-family:var(--font);font-size:12px;cursor:pointer;" title="Force refresh from Freshservice">↻ Refresh</button>
+          <div class="filter-group">
+            <button class="filter-btn active" onclick="setFilter(this,'7d')">7 days</button>
+            <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
+            <button class="filter-btn" onclick="setFilter(this,'all')">All time</button>
+          </div>
         </div>
       </div>
 
@@ -779,9 +782,11 @@ async function loadData() {
     const agResp = await fetch('/api/allagents').then(r=>r.json());
     allAgents = agResp.agents || [];
 
-    const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('lastUpdated').textContent=`Last updated ${now} · ${allTickets.length} tickets · ${allAgents.length} active agents`;
-    document.getElementById('sidebarTime').textContent=now;
+    const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const cachedAt = ticketResp.cached_at ? new Date(ticketResp.cached_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : now;
+    const refreshIn = ticketResp.refreshes_in_minutes !== undefined ? ` · refreshes in ${ticketResp.refreshes_in_minutes}m` : '';
+    document.getElementById('lastUpdated').textContent=`Data from ${cachedAt}${refreshIn} · ${allTickets.length} tickets · ${allAgents.length} agents`;
+    document.getElementById('sidebarTime').textContent=cachedAt;
 
     renderAll();
     renderAgentsView();
@@ -793,8 +798,20 @@ async function loadData() {
   }
 }
 
+async function manualRefresh(btn) {
+  const orig = btn.textContent;
+  btn.textContent = '↻ Refreshing…';
+  btn.disabled = true;
+  await fetch('/api/refresh');
+  setTimeout(async () => {
+    await loadData();
+    btn.textContent = orig;
+    btn.disabled = false;
+  }, 3000);
+}
+
 loadData();
-setInterval(loadData,120000);
+setInterval(loadData, 3660000); // 61 mins — server cache is 60 mins
 </script>
 </body>
 </html>
