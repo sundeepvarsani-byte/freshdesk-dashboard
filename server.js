@@ -235,49 +235,74 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Annual IT stats for highlight report
+  // Annual IT stats — fetches ALL tickets for the past year directly (bypasses cache)
   if (parsed.pathname === "/api/annualstats") {
-    const tickets = cache.tickets.data || [];
-    const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600000);
-    const it = tickets.filter(t => t.workspace_id === 2 && new Date(t.created_at) >= oneYearAgo);
+    try {
+      const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600000);
+      const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Tickets per month
-    const byMonth = {};
-    it.forEach(t => {
-      const k = new Date(t.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-      byMonth[k] = (byMonth[k] || 0) + 1;
-    });
+      // Fetch all IT tickets created in the past year, paginating until exhausted
+      let it = [];
+      let stop = false;
+      for (let page = 1; page <= 50 && !stop; page++) {
+        const result = await fsRequest(
+          `/tickets?per_page=100&page=${page}&workspace_id=2&order_by=created_at&order_type=desc`
+        );
+        const body = result.body;
+        const batch = body.tickets || (Array.isArray(body) ? body : []);
+        if (!batch.length) break;
 
-    // Priority breakdown
-    const byPriority = { 1:0, 2:0, 3:0, 4:0 };
-    it.forEach(t => { byPriority[t.priority] = (byPriority[t.priority]||0)+1; });
+        for (const t of batch) {
+          if (new Date(t.created_at) < oneYearAgo) {
+            stop = true; // tickets are ordered newest first, stop when we go past 1 year
+            break;
+          }
+          it.push(t);
+        }
+        if (batch.length < 100) break;
+      }
 
-    // Status breakdown
-    const byStatus = {};
-    it.forEach(t => { byStatus[t.status] = (byStatus[t.status]||0)+1; });
+      // Tickets per month
+      const byMonth = {};
+      it.forEach(t => {
+        const d = new Date(t.created_at);
+        const k = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+        byMonth[k] = (byMonth[k] || 0) + 1;
+      });
 
-    // Per agent resolved
-    const byAgent = {};
-    it.filter(t => t.status === 4 || t.status === 5).forEach(t => {
-      if (t.responder_id) byAgent[t.responder_id] = (byAgent[t.responder_id]||0)+1;
-    });
+      // Priority breakdown
+      const byPriority = { 1:0, 2:0, 3:0, 4:0 };
+      it.forEach(t => { byPriority[t.priority] = (byPriority[t.priority]||0)+1; });
 
-    // Avg resolution hours (business hours Mon-Fri 8-4)
-    const resolved = it.filter(t => (t.status===4||t.status===5) && t.created_at && t.updated_at);
+      // Status breakdown
+      const byStatus = {};
+      it.forEach(t => { byStatus[t.status] = (byStatus[t.status]||0)+1; });
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      period: `${oneYearAgo.toLocaleDateString('en-GB')} — today`,
-      total: it.length,
-      resolved: it.filter(t=>t.status===4||t.status===5).length,
-      active: it.filter(t=>[2,3,6,7].includes(t.status)).length,
-      by_month: byMonth,
-      by_priority: byPriority,
-      by_status: byStatus,
-      by_agent: byAgent,
-      urgent_count: byPriority[4]||0,
-      high_count: byPriority[3]||0,
-    }, null, 2));
+      // Per agent resolved
+      const byAgent = {};
+      it.filter(t => t.status === 4 || t.status === 5).forEach(t => {
+        if (t.responder_id) byAgent[t.responder_id] = (byAgent[t.responder_id]||0)+1;
+      });
+
+      const resolved = it.filter(t => t.status === 4 || t.status === 5).length;
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        period: `${oneYearAgo.toLocaleDateString('en-GB')} — ${new Date().toLocaleDateString('en-GB')}`,
+        total: it.length,
+        resolved,
+        active: it.filter(t=>[2,3,6,7].includes(t.status)).length,
+        by_month: byMonth,
+        by_priority: byPriority,
+        by_status: byStatus,
+        by_agent: byAgent,
+        urgent_count: byPriority[4]||0,
+        high_count: byPriority[3]||0,
+      }, null, 2));
+    } catch(err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 
