@@ -140,6 +140,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
+  if (parsed.pathname === "/annual" || parsed.pathname === "/annual.html") {
+    const html = fs.readFileSync(path.join(__dirname, "annual.html"), "utf8");
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end(html);
+    return;
+  }
+
   if (parsed.pathname === "/" || parsed.pathname === "/index.html") {
     const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
     res.writeHead(200, { "Content-Type": "text/html" });
@@ -225,6 +232,52 @@ const server = http.createServer(async (req, res) => {
     tickets.forEach(t => { counts[t.status] = (counts[t.status]||0)+1; });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ total_it_tickets: tickets.length, status_breakdown: counts }, null, 2));
+    return;
+  }
+
+  // Annual IT stats for highlight report
+  if (parsed.pathname === "/api/annualstats") {
+    const tickets = cache.tickets.data || [];
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600000);
+    const it = tickets.filter(t => t.workspace_id === 2 && new Date(t.created_at) >= oneYearAgo);
+
+    // Tickets per month
+    const byMonth = {};
+    it.forEach(t => {
+      const k = new Date(t.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+      byMonth[k] = (byMonth[k] || 0) + 1;
+    });
+
+    // Priority breakdown
+    const byPriority = { 1:0, 2:0, 3:0, 4:0 };
+    it.forEach(t => { byPriority[t.priority] = (byPriority[t.priority]||0)+1; });
+
+    // Status breakdown
+    const byStatus = {};
+    it.forEach(t => { byStatus[t.status] = (byStatus[t.status]||0)+1; });
+
+    // Per agent resolved
+    const byAgent = {};
+    it.filter(t => t.status === 4 || t.status === 5).forEach(t => {
+      if (t.responder_id) byAgent[t.responder_id] = (byAgent[t.responder_id]||0)+1;
+    });
+
+    // Avg resolution hours (business hours Mon-Fri 8-4)
+    const resolved = it.filter(t => (t.status===4||t.status===5) && t.created_at && t.updated_at);
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      period: `${oneYearAgo.toLocaleDateString('en-GB')} — today`,
+      total: it.length,
+      resolved: it.filter(t=>t.status===4||t.status===5).length,
+      active: it.filter(t=>[2,3,6,7].includes(t.status)).length,
+      by_month: byMonth,
+      by_priority: byPriority,
+      by_status: byStatus,
+      by_agent: byAgent,
+      urgent_count: byPriority[4]||0,
+      high_count: byPriority[3]||0,
+    }, null, 2));
     return;
   }
 

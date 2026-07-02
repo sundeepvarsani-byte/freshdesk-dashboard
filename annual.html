@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Team Annual Report — SEARCH Education Trust</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:#0f1117;--surface:#171b26;--surface2:#1e2334;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+    --text:#f0f2f8;--muted:#7a82a0;
+    --accent:#1CB47A;--blue:#4f8ef7;--amber:#f5a623;--red:#e55353;--purple:#9b72f5;
+    --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;}
+
+  .page{max-width:1100px;margin:0 auto;padding:3rem 2rem;}
+
+  /* HERO */
+  .hero{text-align:center;padding:3rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:3rem;}
+  .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(28,180,122,0.12);color:var(--accent);font-size:11px;font-weight:600;padding:5px 14px;border-radius:20px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1.25rem;}
+  .hero-title{font-size:42px;font-weight:700;letter-spacing:-0.04em;line-height:1.1;margin-bottom:1rem;}
+  .hero-title span{color:var(--accent);}
+  .hero-sub{font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 1.5rem;}
+  .hero-period{font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+  /* SECTION */
+  .section{margin-bottom:3rem;}
+  .section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:0.75rem;font-weight:600;}
+  .section-title{font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:1.5rem;}
+
+  /* BIG STATS */
+  .big-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:3rem;}
+  .big-stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.75rem 1.5rem;position:relative;overflow:hidden;text-align:center;}
+  .big-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--bs-color,var(--accent));}
+  .big-stat-icon{font-size:28px;margin-bottom:0.75rem;}
+  .big-stat-val{font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;color:var(--bs-color,var(--accent));margin-bottom:6px;font-family:var(--mono);}
+  .big-stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+  .big-stat-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+
+  /* HIGHLIGHT BANNER */
+  .highlight-banner{background:linear-gradient(135deg,rgba(28,180,122,0.15),rgba(79,142,247,0.1));border:1px solid rgba(28,180,122,0.25);border-radius:16px;padding:2rem 2.5rem;margin-bottom:3rem;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2rem;}
+  .highlight-text{font-size:20px;font-weight:500;line-height:1.4;}
+  .highlight-text strong{color:var(--accent);}
+  .highlight-sub{font-size:13px;color:var(--muted);margin-top:8px;}
+  .highlight-num{font-size:64px;font-weight:700;letter-spacing:-0.05em;color:var(--accent);font-family:var(--mono);text-align:center;line-height:1;}
+  .highlight-num-label{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;}
+
+  /* CARDS ROW */
+  .cards-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:3rem;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;}
+  .card-title{font-size:13px;font-weight:500;margin-bottom:1.25rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+
+  /* PRIORITY BREAKDOWN */
+  .pri-list{display:flex;flex-direction:column;gap:10px;}
+  .pri-item{display:flex;align-items:center;gap:10px;}
+  .pri-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .pri-name{font-size:13px;flex:1;}
+  .pri-bar-track{flex:3;height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;}
+  .pri-bar-fill{height:100%;border-radius:4px;}
+  .pri-count{font-size:13px;font-weight:500;font-family:var(--mono);min-width:40px;text-align:right;}
+  .pri-pct{font-size:11px;color:var(--muted);min-width:36px;text-align:right;}
+
+  /* AGENT CARDS */
+  .agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:3rem;}
+  .agent-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;text-align:center;}
+  .agent-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin:0 auto 10px;}
+  .agent-name{font-size:13px;font-weight:500;margin-bottom:4px;}
+  .agent-role{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  .agent-resolved{font-size:28px;font-weight:700;font-family:var(--mono);color:var(--accent);line-height:1;}
+  .agent-resolved-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+
+  /* MONTHLY CHART */
+  .chart-wrap{position:relative;height:220px;}
+
+  /* CALLOUT STATS */
+  .callout-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:3rem;}
+  .callout{background:var(--surface2);border-radius:12px;padding:1.25rem 1.5rem;border-left:3px solid var(--co-color,var(--accent));}
+  .callout-val{font-size:28px;font-weight:700;font-family:var(--mono);color:var(--co-color,var(--accent));line-height:1;margin-bottom:4px;}
+  .callout-label{font-size:12px;color:var(--muted);}
+
+  /* FOOTER */
+  .footer{text-align:center;padding:2rem 0;border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin-top:2rem;}
+
+  .loading{text-align:center;padding:4rem;color:var(--muted);font-size:14px;}
+  .spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-right:8px;vertical-align:middle;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="page" id="content">
+  <div class="loading"><div class="spinner"></div>Loading annual stats…</div>
+</div>
+
+<script>
+const AGENT_NAMES = {
+  // These will be populated from the agents API
+};
+
+const PRI = {
+  1:{label:'Low',    color:'#7a82a0'},
+  2:{label:'Medium', color:'#4f8ef7'},
+  3:{label:'High',   color:'#f5a623'},
+  4:{label:'Urgent', color:'#e55353'},
+};
+
+const STATUS_NAMES = {2:'Open',3:'Pending',4:'Resolved',5:'Closed',6:'On Hold',7:'3rd Party'};
+
+async function load() {
+  const [statsResp, agentsResp] = await Promise.all([
+    fetch('/api/annualstats').then(r=>r.json()),
+    fetch('/api/allagents').then(r=>r.json()),
+  ]);
+
+  const stats  = statsResp;
+  const agents = agentsResp.agents || [];
+
+  // Build agent name lookup
+  const agentMap = {};
+  agents.forEach(a => {
+    agentMap[a.id] = a.contact?.name
+      || (a.first_name ? `${a.first_name} ${a.last_name||''}`.trim() : null)
+      || a.name || a.email?.split('@')[0] || 'Agent';
+  });
+
+  const total    = stats.total;
+  const resolved = stats.resolved;
+  const resRate  = total ? Math.round(resolved/total*100) : 0;
+  const urgent   = stats.urgent_count || 0;
+  const high     = stats.high_count || 0;
+
+  // Top agents by resolved tickets
+  const agentStats = Object.entries(stats.by_agent || {})
+    .map(([id, count]) => ({ name: agentMap[id] || `Agent ${id}`, count, id }))
+    .sort((a,b) => b.count - a.count)
+    .slice(0, 3);
+
+  // Monthly data
+  const months = Object.keys(stats.by_month || {}).slice(-12);
+  const monthCounts = months.map(m => stats.by_month[m] || 0);
+  const busiest = months[monthCounts.indexOf(Math.max(...monthCounts))];
+  const busiestCount = Math.max(...monthCounts);
+
+  // Priority breakdown
+  const priTotal = Object.values(stats.by_priority||{}).reduce((a,b)=>a+b,0)||1;
+  const priRows = [4,3,2,1].map(p => ({
+    ...PRI[p],
+    count: stats.by_priority[p]||0,
+    pct: Math.round((stats.by_priority[p]||0)/priTotal*100),
+  }));
+
+  const AGENT_COLORS = ['#4f8ef7','#1CB47A','#9b72f5'];
+
+  document.getElementById('content').innerHTML = `
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge">📊 Annual Impact Report</div>
+      <div class="hero-title">A year in IT at<br><span>SEARCH Education Trust</span></div>
+      <div class="hero-sub">Highlights from the IT helpdesk — the work your team did this year</div>
+      <div class="hero-period">${stats.period}</div>
+    </div>
+
+    <!-- BIG 4 STATS -->
+    <div class="big-stats">
+      <div class="big-stat" style="--bs-color:#4f8ef7">
+        <div class="big-stat-icon">🎫</div>
+        <div class="big-stat-val">${total.toLocaleString()}</div>
+        <div class="big-stat-label">Tickets raised</div>
+        <div class="big-stat-sub">Across all schools</div>
+      </div>
+      <div class="big-stat" style="--bs-color:#1CB47A">
+        <div class="big-stat-icon">✅</div>
+        <div class="big-stat-val">${resolved.toLocaleString()}</div>
+        <div class="big-stat-label">Tickets resolved</div>
+        <div class="big-stat-sub">${resRate}% resolution rate</div>
+      </div>
+      <div class="big-stat" style="--bs-color:#f5a623">
+        <div class="big-stat-icon">⚡</div>
+        <div class="big-stat-val">${(urgent+high).toLocaleString()}</div>
+        <div class="big-stat-label">High priority handled</div>
+        <div class="big-stat-sub">${urgent} urgent · ${high} high</div>
+      </div>
+      <div class="big-stat" style="--bs-color:#9b72f5">
+        <div class="big-stat-icon">📅</div>
+        <div class="big-stat-val">${Math.round(total/52)}</div>
+        <div class="big-stat-label">Tickets per week</div>
+        <div class="big-stat-sub">Average across the year</div>
+      </div>
+    </div>
+
+    <!-- HIGHLIGHT BANNER -->
+    <div class="highlight-banner">
+      <div>
+        <div class="highlight-text">Your busiest month was <strong>${busiest}</strong> with <strong>${busiestCount} tickets</strong> — the team handled it all.</div>
+        <div class="highlight-sub">That's ${Math.round(busiestCount/20)} tickets per working day on average during the busiest month.</div>
+      </div>
+      <div>
+        <div class="highlight-num">${resRate}%</div>
+        <div class="highlight-num-label">Resolution rate</div>
+      </div>
+    </div>
+
+    <!-- MONTHLY CHART + PRIORITY -->
+    <div class="section">
+      <div class="section-label">Trends</div>
+      <div class="section-title">Ticket volume by month</div>
+    </div>
+    <div class="cards-row">
+      <div class="card">
+        <div class="card-title">Monthly ticket volume</div>
+        <div class="chart-wrap"><canvas id="monthChart" role="img" aria-label="Monthly ticket volume bar chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">By priority</div>
+        <div class="pri-list" style="margin-top:0.5rem">
+          ${priRows.map(p=>`
+            <div class="pri-item">
+              <div class="pri-dot" style="background:${p.color}"></div>
+              <div class="pri-name">${p.label}</div>
+              <div class="pri-bar-track"><div class="pri-bar-fill" style="width:${p.pct}%;background:${p.color}"></div></div>
+              <div class="pri-count">${p.count}</div>
+              <div class="pri-pct">${p.pct}%</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLOUT STATS -->
+    <div class="callout-grid">
+      <div class="callout" style="--co-color:#4f8ef7">
+        <div class="callout-val">${Math.round(total/12)}</div>
+        <div class="callout-label">Average tickets per month</div>
+      </div>
+      <div class="callout" style="--co-color:#1CB47A">
+        <div class="callout-val">${Math.round(total/5)}</div>
+        <div class="callout-label">Tickets per team member (est.)</div>
+      </div>
+      <div class="callout" style="--co-color:#f5a623">
+        <div class="callout-val">${urgent}</div>
+        <div class="callout-label">Urgent tickets handled</div>
+      </div>
+    </div>
+
+    <!-- AGENT SECTION -->
+    ${agentStats.length ? `
+    <div class="section">
+      <div class="section-label">Team performance</div>
+      <div class="section-title">Top resolvers this year</div>
+    </div>
+    <div class="agent-grid">
+      ${agentStats.map((a,i)=>`
+        <div class="agent-card">
+          <div class="agent-avatar" style="background:${AGENT_COLORS[i]}22;color:${AGENT_COLORS[i]}">${a.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div class="agent-name">${a.name}</div>
+          <div class="agent-role">IT Team</div>
+          <div class="agent-resolved">${a.count}</div>
+          <div class="agent-resolved-label">tickets resolved</div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    <!-- FOOTER -->
+    <div class="footer">
+      SEARCH Education Trust · IT Helpdesk · ${new Date().getFullYear()} Annual Report · Data from Freshservice
+    </div>
+  `;
+
+  // Monthly chart
+  new Chart(document.getElementById('monthChart'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Tickets',
+        data: monthCounts,
+        backgroundColor: months.map((_,i) => i === monthCounts.indexOf(Math.max(...monthCounts))
+          ? '#1CB47A' : 'rgba(79,142,247,0.5)'),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#7a82a0',font:{size:10}} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#7a82a0',font:{size:10}} }
+      }
+    }
+  });
+}
+
+load().catch(err => {
+  document.getElementById('content').innerHTML =
+    `<div class="loading" style="color:#e55353">Failed to load: ${err.message}</div>`;
+});
+</script>
+</body>
+</html>
