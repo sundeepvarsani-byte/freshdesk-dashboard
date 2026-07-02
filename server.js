@@ -278,10 +278,44 @@ const server = http.createServer(async (req, res) => {
       const byStatus = {};
       it.forEach(t => { byStatus[t.status] = (byStatus[t.status]||0)+1; });
 
-      // Per agent resolved
-      const byAgent = {};
+      // Build agent name lookup from cache
+      const agentNameMap = {};
+      const cachedAgents = cache.agents.data || [];
+      cachedAgents.forEach(a => {
+        const name = a.contact?.name
+          || (a.first_name ? `${a.first_name} ${a.last_name||''}`.trim() : null)
+          || a.name
+          || a.email?.split('@')[0]
+          || null;
+        if (name) agentNameMap[a.id] = name;
+      });
+
+      // If cache is empty, fetch agents fresh
+      if (!cachedAgents.length) {
+        const agRes = await fsRequest('/agents?per_page=100&active=true&workspace_id=2');
+        const agBody = agRes.body;
+        const freshAgents = agBody.agents || (Array.isArray(agBody) ? agBody : []);
+        freshAgents.forEach(a => {
+          const name = a.contact?.name
+            || (a.first_name ? `${a.first_name} ${a.last_name||''}`.trim() : null)
+            || a.name
+            || a.email?.split('@')[0]
+            || null;
+          if (name) agentNameMap[a.id] = name;
+        });
+      }
+
+      // Per agent resolved — keyed by name not ID
+      const byAgentId = {};
       it.filter(t => t.status === 4 || t.status === 5).forEach(t => {
-        if (t.responder_id) byAgent[t.responder_id] = (byAgent[t.responder_id]||0)+1;
+        if (t.responder_id) byAgentId[t.responder_id] = (byAgentId[t.responder_id]||0)+1;
+      });
+
+      // Convert to name-keyed object, fall back to "Agent ID" only if truly unknown
+      const byAgent = {};
+      Object.entries(byAgentId).forEach(([id, count]) => {
+        const name = agentNameMap[id] || `Unknown Agent`;
+        byAgent[name] = (byAgent[name]||0) + count;
       });
 
       const resolved = it.filter(t => t.status === 4 || t.status === 5).length;

@@ -110,21 +110,8 @@ const PRI = {
 const STATUS_NAMES = {2:'Open',3:'Pending',4:'Resolved',5:'Closed',6:'On Hold',7:'3rd Party'};
 
 async function load() {
-  const [statsResp, agentsResp] = await Promise.all([
-    fetch('/api/annualstats').then(r=>r.json()),
-    fetch('/api/allagents').then(r=>r.json()),
-  ]);
-
-  const stats  = statsResp;
-  const agents = agentsResp.agents || [];
-
-  // Build agent name lookup
-  const agentMap = {};
-  agents.forEach(a => {
-    agentMap[a.id] = a.contact?.name
-      || (a.first_name ? `${a.first_name} ${a.last_name||''}`.trim() : null)
-      || a.name || a.email?.split('@')[0] || 'Agent';
-  });
+  const statsResp = await fetch('/api/annualstats').then(r=>r.json());
+  const stats = statsResp;
 
   const total    = stats.total;
   const resolved = stats.resolved;
@@ -132,9 +119,9 @@ async function load() {
   const urgent   = stats.urgent_count || 0;
   const high     = stats.high_count || 0;
 
-  // Top agents by resolved tickets
+  // Top agents by resolved tickets — by_agent is now { name: count }
   const agentStats = Object.entries(stats.by_agent || {})
-    .map(([id, count]) => ({ name: agentMap[id] || `Agent ${id}`, count, id }))
+    .map(([name, count]) => ({ name, count }))
     .sort((a,b) => b.count - a.count)
     .slice(0, 3);
 
